@@ -1,0 +1,143 @@
+import { useCallback, useState } from "react";
+import {
+  BookOpen,
+  Info,
+  Link2,
+  Palette,
+  Settings as SettingsIcon,
+} from "lucide-react";
+import { T } from "../tokens";
+import { useSettings } from "../useSettings";
+import { Titlebar } from "./Titlebar";
+import { General } from "./panes/General";
+import { Trello } from "./panes/Trello";
+import { Appearance } from "./panes/Appearance";
+import { Setup } from "./panes/Setup";
+import { About } from "./panes/About";
+
+type TabId = "general" | "trello" | "setup" | "appearance" | "about";
+
+const TABS: { id: TabId; label: string; icon: typeof SettingsIcon }[] = [
+  { id: "general", label: "General", icon: SettingsIcon },
+  { id: "trello", label: "Trello", icon: Link2 },
+  { id: "setup", label: "Setup guide", icon: BookOpen },
+  { id: "appearance", label: "Appearance", icon: Palette },
+  { id: "about", label: "About", icon: Info },
+];
+
+export function Settings() {
+  const { settings, update, loaded } = useSettings();
+  const [tab, setTab] = useState<TabId>("general");
+  const [connected, setConnected] = useState(false);
+  const onConnectedChange = useCallback((c: boolean) => setConnected(c), []);
+
+  return (
+    <div
+      className="qc-root"
+      style={{
+        width: "100%",
+        height: "100vh",
+        display: "flex",
+        flexDirection: "column",
+        background: "#10121d",
+        border: `1px solid ${T.border}`,
+        borderRadius: 14,
+        overflow: "hidden",
+      }}
+    >
+      <Titlebar />
+
+      <div style={{ flex: 1, display: "flex", minHeight: 0 }}>
+        {/* sidebar */}
+        <div
+          style={{
+            width: 196,
+            flexShrink: 0,
+            borderRight: `1px solid ${T.hairline}`,
+            padding: 16,
+            display: "flex",
+            flexDirection: "column",
+            background: "rgba(255,255,255,0.015)",
+          }}
+        >
+          {TABS.map((t) => {
+            const active = tab === t.id;
+            return (
+              <button
+                key={t.id}
+                className="row btn"
+                onClick={() => setTab(t.id)}
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  gap: 10,
+                  padding: "9px 10px",
+                  marginBottom: 2,
+                  borderRadius: 9,
+                  background: active ? "rgba(255,255,255,0.07)" : "transparent",
+                  border: "none",
+                  cursor: "pointer",
+                  color: active ? T.text : T.sub,
+                  fontSize: 13.5,
+                  fontWeight: active ? 600 : 500,
+                  textAlign: "left",
+                }}
+              >
+                <t.icon size={16} color={active ? "var(--accent)" : T.faint} />{" "}
+                {t.label}
+              </button>
+            );
+          })}
+          <div
+            style={{
+              marginTop: "auto",
+              display: "flex",
+              alignItems: "center",
+              gap: 8,
+              padding: "8px 10px",
+              fontSize: 11.5,
+              color: T.faint,
+            }}
+          >
+            <span
+              style={{
+                width: 7,
+                height: 7,
+                borderRadius: "50%",
+                background: connected ? T.success : T.faint,
+              }}
+            />
+            {connected ? "Trello connected" : "Not connected"}
+          </div>
+        </div>
+
+        {/* content */}
+        <div
+          key={tab}
+          style={{
+            flex: 1,
+            padding: "26px 28px",
+            overflowY: "auto",
+            animation: "tabIn .26s ease both",
+          }}
+        >
+          {loaded && tab === "general" && (
+            <General settings={settings} update={update} />
+          )}
+          {loaded && tab === "trello" && (
+            <Trello
+              settings={settings}
+              update={update}
+              onConnectedChange={onConnectedChange}
+            />
+          )}
+          {loaded && tab === "setup" && <Setup settings={settings} />}
+          {loaded && tab === "appearance" && (
+            <Appearance settings={settings} update={update} />
+          )}
+          {loaded && tab === "about" && <About />}
+        </div>
+      </div>
+    </div>
+  );
+}
