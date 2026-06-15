@@ -23,7 +23,7 @@ export function About() {
             Wamda
           </div>
           <div className="mono" style={{ fontSize: 12, color: T.faint, marginTop: 2 }}>
-            v0.1.0
+            v0.2.0
           </div>
         </div>
       </div>
