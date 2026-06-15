@@ -1,12 +1,24 @@
 /* Typed wrappers over Tauri's invoke() — the single surface the UI uses to talk to Rust. */
 import { invoke } from "@tauri-apps/api/core";
-import type { Board, Card, List, Settings } from "./types";
+import type {
+  Board,
+  Card,
+  List,
+  ProviderStatus,
+  Reminder,
+  Settings,
+  TaskInput,
+  TaskRef,
+  TaskSummary,
+  Team,
+} from "./types";
 
 export const getSettings = () => invoke<Settings>("get_settings");
 
 export const saveSettings = (settings: Settings) =>
   invoke<void>("save_settings", { settings });
 
+/* ---- Trello (settings pickers) ---- */
 export const trelloGetBoards = (key: string, token: string) =>
   invoke<Board[]>("trello_get_boards", { key, token });
 
@@ -20,6 +32,37 @@ export const trelloCreateCard = (
   name: string,
 ) => invoke<Card>("trello_create_card", { key, token, listId, name });
 
+/* ---- Linear (settings picker) ---- */
+export const linearGetTeams = (apiKey: string) =>
+  invoke<Team[]>("linear_get_teams", { apiKey });
+
+/* ---- Generic provider surface ---- */
+export const providerCreateTask = (providerId: string, input: TaskInput) =>
+  invoke<TaskRef>("provider_create_task", { providerId, input });
+
+export const providerListDue = (providerId: string, limit: number) =>
+  invoke<TaskSummary[]>("provider_list_due", { providerId, limit });
+
+export const providerStatus = (providerId: string) =>
+  invoke<ProviderStatus>("provider_status", { providerId });
+
+export const listProviders = () =>
+  invoke<ProviderStatus[]>("list_providers");
+
+/* ---- Local reminders ---- */
+export const reminderSchedule = (phrase: string, message: string) =>
+  invoke<Reminder>("reminder_schedule", { phrase, message });
+
+export const reminderRemove = (id: string) =>
+  invoke<void>("reminder_remove", { id });
+
+export const reminderList = () => invoke<Reminder[]>("reminder_list");
+
+/* ---- Background timers ---- */
+export const timerStart = (spec: string, label?: string) =>
+  invoke<string>("timer_start", { spec, label: label ?? null });
+
+/* ---- System ---- */
 /** Re-register the global capture shortcut. Rejects with a readable string on conflict/invalid. */
 export const registerShortcut = (accelerator: string) =>
   invoke<void>("register_shortcut", { accelerator });

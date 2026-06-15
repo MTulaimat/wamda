@@ -1,7 +1,8 @@
 use tauri::{AppHandle, Runtime};
 
+use crate::provider::{self, ProviderKind, ProviderStatus, TaskInput, TaskRef, TaskSummary};
 use crate::settings::Settings;
-use crate::{settings, shortcut, trello, windows};
+use crate::{linear, reminders, settings, shortcut, timers, trello, windows};
 
 #[tauri::command]
 pub fn get_settings<R: Runtime>(app: AppHandle<R>) -> Settings {
@@ -84,4 +85,102 @@ fn sync_autostart<R: Runtime>(app: &AppHandle<R>, enabled: bool) {
     } else if !enabled && current {
         let _ = mgr.disable();
     }
+}
+
+// ---- Generic provider surface ----
+
+#[tauri::command]
+pub async fn provider_create_task<R: Runtime>(
+    app: AppHandle<R>,
+    provider_id: String,
+    input: TaskInput,
+) -> Result<TaskRef, String> {
+    let s = settings::load(&app);
+    let p = ProviderKind::from_settings(&provider_id, &s)?;
+    if !p.is_configured() {
+        return Err(format!("{} isn't connected yet", p.label()));
+    }
+    p.create_task(input).await
+}
+
+#[tauri::command]
+pub async fn provider_list_due<R: Runtime>(
+    app: AppHandle<R>,
+    provider_id: String,
+    limit: usize,
+) -> Result<Vec<TaskSummary>, String> {
+    let s = settings::load(&app);
+    let p = ProviderKind::from_settings(&provider_id, &s)?;
+    if !p.is_configured() {
+        return Err(format!("{} isn't connected yet", p.label()));
+    }
+    p.list_due(limit).await
+}
+
+#[tauri::command]
+pub fn provider_status<R: Runtime>(
+    app: AppHandle<R>,
+    provider_id: String,
+) -> Result<ProviderStatus, String> {
+    let s = settings::load(&app);
+    let p = ProviderKind::from_settings(&provider_id, &s)?;
+    Ok(ProviderStatus {
+        id: p.id().into(),
+        configured: p.is_configured(),
+        label: p.label().into(),
+    })
+}
+
+#[tauri::command]
+pub fn list_providers<R: Runtime>(app: AppHandle<R>) -> Vec<ProviderStatus> {
+    let s = settings::load(&app);
+    provider::PROVIDER_IDS
+        .iter()
+        .filter_map(|id| {
+            ProviderKind::from_settings(id, &s)
+                .ok()
+                .map(|p| ProviderStatus {
+                    id: p.id().into(),
+                    configured: p.is_configured(),
+                    label: p.label().into(),
+                })
+        })
+        .collect()
+}
+
+#[tauri::command]
+pub async fn linear_get_teams(api_key: String) -> Result<Vec<linear::Team>, String> {
+    linear::get_teams(&api_key).await
+}
+
+// ---- Local reminders ----
+
+#[tauri::command]
+pub fn reminder_schedule<R: Runtime>(
+    app: AppHandle<R>,
+    phrase: String,
+    message: String,
+) -> Result<reminders::Reminder, String> {
+    reminders::schedule(&app, phrase, message)
+}
+
+#[tauri::command]
+pub fn reminder_remove<R: Runtime>(app: AppHandle<R>, id: String) -> Result<(), String> {
+    reminders::remove(&app, id)
+}
+
+#[tauri::command]
+pub fn reminder_list<R: Runtime>(app: AppHandle<R>) -> Vec<reminders::Reminder> {
+    reminders::list(&app)
+}
+
+// ---- Background timers ----
+
+#[tauri::command]
+pub fn timer_start<R: Runtime>(
+    app: AppHandle<R>,
+    spec: String,
+    label: Option<String>,
+) -> Result<String, String> {
+    timers::start(&app, spec, label)
 }

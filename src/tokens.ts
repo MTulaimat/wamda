@@ -42,17 +42,17 @@ html,body{margin:0;padding:0;background:transparent}
 @keyframes shake{10%,90%{transform:translateX(-2px)}30%,70%{transform:translateX(4px)}50%{transform:translateX(-4px)}}
 @keyframes spin{to{transform:rotate(360deg)}}
 
-.btn{transition:background .18s ease,border-color .18s ease,transform .12s ease,box-shadow .18s ease;cursor:pointer}
-.btn:hover{transform:translateY(-1px)}
-.btn:active{transform:translateY(0)}
-.icon-btn{transition:background .18s ease,color .18s ease,transform .12s ease}
-.icon-btn:hover{background:rgba(255,255,255,0.08);color:${T.text}}
-.icon-btn:active{transform:scale(.92)}
+.btn{transition:filter .15s ease,background .18s ease,border-color .18s ease,box-shadow .18s ease;cursor:pointer}
+.btn:hover{filter:brightness(.88)}
+.btn:active{filter:brightness(.78)}
+.icon-btn{transition:filter .15s ease,background .18s ease,color .18s ease}
+.icon-btn:hover{filter:brightness(.88)}
+.icon-btn:active{filter:brightness(.78)}
 
 .field-wrap{transition:border-color .2s ease,box-shadow .2s ease,background .2s ease}
 .field-wrap:focus-within{border-color:var(--accent)!important;box-shadow:0 0 0 4px rgba(110,123,255,0.16)!important}
-input.bare{background:transparent;border:none;outline:none;color:${T.text};width:100%}
-input.bare::placeholder{color:${T.faint}}
+input.bare,textarea.bare{background:transparent;border:none;outline:none;color:${T.text};width:100%;font-family:inherit}
+input.bare::placeholder,textarea.bare::placeholder{color:${T.faint}}
 
 .seg{transition:color .18s ease}
 .row{transition:background .15s ease}

@@ -1,6 +1,10 @@
 mod commands;
+mod linear;
+mod provider;
+mod reminders;
 mod settings;
 mod shortcut;
+mod timers;
 mod trello;
 mod windows;
 
@@ -31,6 +35,7 @@ pub fn run() {
         .plugin(tauri_plugin_positioner::init())
         .plugin(tauri_plugin_store::Builder::new().build())
         .plugin(tauri_plugin_opener::init())
+        .plugin(tauri_plugin_notification::init())
         .plugin(tauri_plugin_autostart::init(
             tauri_plugin_autostart::MacosLauncher::LaunchAgent,
             Some(vec!["--hidden"]),
@@ -47,6 +52,11 @@ pub fn run() {
                 paused: Mutex::new(false),
             });
 
+            // Reminder scheduler: manage its wake handle, then fire missed
+            // reminders + reschedule the rest and start the background loop.
+            app.manage(reminders::Scheduler::new());
+            reminders::bootstrap(handle);
+
             // A hotkey conflict must NOT prevent startup — the user needs the
             // tray + settings to pick a different combo. Degrade gracefully.
             if let Err(e) = shortcut::register_current(handle) {
@@ -58,13 +68,11 @@ pub fn run() {
         })
         .on_window_event(|window, event| match event {
             // Capture bar dismisses when it loses focus (spotlight behavior).
-            WindowEvent::Focused(false) => {
-                if window.label() == "capture" {
-                    // Reset the bar to its entrance start frame so the next
-                    // open animates cleanly instead of flashing the old frame.
-                    let _ = window.emit("capture:reset", ());
-                    let _ = window.hide();
-                }
+            WindowEvent::Focused(false) if window.label() == "capture" => {
+                // Reset the bar to its entrance start frame so the next
+                // open animates cleanly instead of flashing the old frame.
+                let _ = window.emit("capture:reset", ());
+                let _ = window.hide();
             }
             // Settings close button hides instead of quitting the app.
             WindowEvent::CloseRequested { api, .. } => {
@@ -86,6 +94,15 @@ pub fn run() {
             commands::show_capture,
             commands::hide_capture,
             commands::open_settings,
+            commands::provider_create_task,
+            commands::provider_list_due,
+            commands::provider_status,
+            commands::list_providers,
+            commands::linear_get_teams,
+            commands::reminder_schedule,
+            commands::reminder_remove,
+            commands::reminder_list,
+            commands::timer_start,
         ])
         .run(tauri::generate_context!())
         .expect("error while running Wamda");

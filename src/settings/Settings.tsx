@@ -1,35 +1,26 @@
-import { useCallback, useState } from "react";
-import {
-  BookOpen,
-  Info,
-  Link2,
-  Palette,
-  Settings as SettingsIcon,
-} from "lucide-react";
+import { useState } from "react";
+import { Info, Link2, Palette, Settings as SettingsIcon } from "lucide-react";
 import { T } from "../tokens";
+import { PROVIDER_LABELS, type ProviderId } from "../types";
 import { useSettings } from "../useSettings";
 import { Titlebar } from "./Titlebar";
 import { General } from "./panes/General";
-import { Trello } from "./panes/Trello";
+import { Integrations } from "./panes/Integrations";
 import { Appearance } from "./panes/Appearance";
-import { Setup } from "./panes/Setup";
 import { About } from "./panes/About";
 
-type TabId = "general" | "trello" | "setup" | "appearance" | "about";
+type TabId = "general" | "integrations" | "appearance" | "about";
 
 const TABS: { id: TabId; label: string; icon: typeof SettingsIcon }[] = [
   { id: "general", label: "General", icon: SettingsIcon },
-  { id: "trello", label: "Trello", icon: Link2 },
-  { id: "setup", label: "Setup guide", icon: BookOpen },
+  { id: "integrations", label: "Integrations", icon: Link2 },
   { id: "appearance", label: "Appearance", icon: Palette },
   { id: "about", label: "About", icon: Info },
 ];
 
 export function Settings() {
-  const { settings, update, loaded } = useSettings();
+  const { settings, update, updateProvider, loaded } = useSettings();
   const [tab, setTab] = useState<TabId>("general");
-  const [connected, setConnected] = useState(false);
-  const onConnectedChange = useCallback((c: boolean) => setConnected(c), []);
 
   return (
     <div
@@ -92,22 +83,39 @@ export function Settings() {
             style={{
               marginTop: "auto",
               display: "flex",
-              alignItems: "center",
-              gap: 8,
+              flexDirection: "column",
+              gap: 7,
               padding: "8px 10px",
-              fontSize: 11.5,
-              color: T.faint,
             }}
           >
-            <span
-              style={{
-                width: 7,
-                height: 7,
-                borderRadius: "50%",
-                background: connected ? T.success : T.faint,
-              }}
-            />
-            {connected ? "Trello connected" : "Not connected"}
+            {(["trello", "linear"] as ProviderId[]).map((id) => {
+              const c = settings.providers[id].connected;
+              return (
+                <div
+                  key={id}
+                  style={{
+                    display: "flex",
+                    alignItems: "center",
+                    gap: 8,
+                    fontSize: 11.5,
+                    color: c ? T.sub : T.faint,
+                  }}
+                >
+                  <span
+                    style={{
+                      width: 7,
+                      height: 7,
+                      borderRadius: "50%",
+                      background: c ? T.success : T.faint,
+                    }}
+                  />
+                  {PROVIDER_LABELS[id]}
+                  <span style={{ marginLeft: "auto", fontSize: 10.5, color: T.faint }}>
+                    {c ? "connected" : "—"}
+                  </span>
+                </div>
+              );
+            })}
           </div>
         </div>
 
@@ -124,14 +132,13 @@ export function Settings() {
           {loaded && tab === "general" && (
             <General settings={settings} update={update} />
           )}
-          {loaded && tab === "trello" && (
-            <Trello
+          {loaded && tab === "integrations" && (
+            <Integrations
               settings={settings}
               update={update}
-              onConnectedChange={onConnectedChange}
+              updateProvider={updateProvider}
             />
           )}
-          {loaded && tab === "setup" && <Setup settings={settings} />}
           {loaded && tab === "appearance" && (
             <Appearance settings={settings} update={update} />
           )}

@@ -29,8 +29,9 @@ export function About() {
       </div>
 
       <p style={{ margin: "0 0 22px", fontSize: 13.5, color: T.sub, lineHeight: 1.6 }}>
-        Wamda is a background quick-capture bar — tap a hotkey, type a task, and it lands as a card
-        on your Trello board, without breaking your flow.
+        Wamda is a background quick-capture command bar — tap a hotkey, type a task, and it lands on
+        Trello or Linear. Slash commands add reminders, timers, and a glance at what’s due — without
+        breaking your flow.
       </p>
 
       {/* The name */}

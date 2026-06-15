@@ -7,6 +7,34 @@ import { accelFromEvent } from "../accelerator";
 import { registerShortcut, setAutostart } from "../../ipc";
 import type { Settings } from "../../types";
 
+const CAPTURE_SHORTCUTS: { label: string; combos: string[][] }[] = [
+  { label: "Add task · run command", combos: [["Enter"]] },
+  { label: "Add task from the description", combos: [["Ctrl", "Enter"]] },
+  { label: "Add & keep open (add more)", combos: [["Shift", "Enter"]] },
+  { label: "Open details · next field", combos: [["Tab"]] },
+  { label: "Previous field", combos: [["Shift", "Tab"]] },
+  { label: "Toggle details", combos: [["Ctrl", "↓"], ["Ctrl", "↑"]] },
+  { label: "Set due date", combos: [["Ctrl", "D"]] },
+  { label: "Destination picker", combos: [["Ctrl", "P"]] },
+  { label: "Send to Trello · Linear", combos: [["Ctrl", "1"], ["Ctrl", "2"]] },
+  { label: "Command menu", combos: [["/"]] },
+  { label: "Open settings", combos: [["Ctrl", ","]] },
+  { label: "Dismiss · back out", combos: [["Esc"]] },
+];
+
+function Combo({ keys }: { keys: string[] }) {
+  return (
+    <span style={{ display: "inline-flex", alignItems: "center", gap: 4 }}>
+      {keys.map((k, i) => (
+        <span key={i} style={{ display: "inline-flex", alignItems: "center", gap: 4 }}>
+          {i > 0 && <span style={{ fontSize: 10, color: T.faint }}>+</span>}
+          <Key>{k}</Key>
+        </span>
+      ))}
+    </span>
+  );
+}
+
 export function General({
   settings,
   update,
@@ -105,6 +133,49 @@ export function General({
         on={settings.prefillFromClipboard}
         set={(v) => update({ prefillFromClipboard: v })}
       />
+
+      <div style={{ height: 1, background: T.hairline, margin: "20px 0 18px" }} />
+
+      <div style={{ fontSize: 13.5, color: T.text, fontWeight: 600, marginBottom: 3 }}>
+        Keyboard shortcuts
+      </div>
+      <p style={{ margin: "0 0 12px", fontSize: 12, color: T.faint }}>
+        Available while the capture bar is open. On Mac, ⌘ stands in for Ctrl.
+      </p>
+      <div style={{ display: "flex", flexDirection: "column" }}>
+        {CAPTURE_SHORTCUTS.map((s) => (
+          <div
+            key={s.label}
+            className="row"
+            style={{
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "space-between",
+              gap: 12,
+              padding: "7px 10px",
+              margin: "0 -10px",
+              borderRadius: 8,
+            }}
+          >
+            <span style={{ fontSize: 13, color: T.sub }}>{s.label}</span>
+            <span style={{ display: "flex", alignItems: "center", gap: 6, flexShrink: 0 }}>
+              {s.combos.map((c, i) => (
+                <span
+                  key={i}
+                  style={{ display: "inline-flex", alignItems: "center", gap: 6 }}
+                >
+                  {i > 0 && <span style={{ fontSize: 11, color: T.faint }}>/</span>}
+                  <Combo keys={c} />
+                </span>
+              ))}
+            </span>
+          </div>
+        ))}
+      </div>
+      <p style={{ margin: "14px 0 0", fontSize: 11.5, color: T.faint, lineHeight: 1.5 }}>
+        Rebinding individual shortcuts isn’t supported yet — only the capture hotkey
+        above is configurable.
+      </p>
     </>
   );
 }
