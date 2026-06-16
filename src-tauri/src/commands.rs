@@ -2,7 +2,7 @@ use tauri::{AppHandle, Runtime};
 
 use crate::provider::{self, ProviderKind, ProviderStatus, TaskInput, TaskRef, TaskSummary};
 use crate::settings::Settings;
-use crate::{linear, reminders, settings, shortcut, timers, trello, windows};
+use crate::{linear, notes, reminders, settings, shortcut, timers, trello, windows};
 
 #[tauri::command]
 pub fn get_settings<R: Runtime>(app: AppHandle<R>) -> Settings {
@@ -222,6 +222,23 @@ pub fn reminder_remove<R: Runtime>(app: AppHandle<R>, id: String) -> Result<(), 
 #[tauri::command]
 pub fn reminder_list<R: Runtime>(app: AppHandle<R>) -> Vec<reminders::Reminder> {
     reminders::list(&app)
+}
+
+// ---- Local notes ----
+
+#[tauri::command]
+pub fn note_create<R: Runtime>(app: AppHandle<R>, text: String) -> Result<notes::Note, String> {
+    notes::add(&app, text)
+}
+
+#[tauri::command]
+pub fn note_list<R: Runtime>(app: AppHandle<R>) -> Vec<notes::Note> {
+    notes::list(&app)
+}
+
+#[tauri::command]
+pub fn note_remove<R: Runtime>(app: AppHandle<R>, id: String) -> Result<(), String> {
+    notes::remove(&app, id)
 }
 
 // ---- Background timers ----

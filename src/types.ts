@@ -67,6 +67,12 @@ export type Reminder = {
   createdAt: string;
 };
 
+export type Note = {
+  id: string;
+  text: string;
+  createdAt: string;
+};
+
 export const DEFAULT_SETTINGS: Settings = {
   shortcut: "Ctrl+Alt+.",
   launchAtStartup: false,

@@ -4,6 +4,7 @@ import type {
   Board,
   Card,
   List,
+  Note,
   ProviderStatus,
   Reminder,
   Settings,
@@ -74,6 +75,14 @@ export const reminderRemove = (id: string) =>
   invoke<void>("reminder_remove", { id });
 
 export const reminderList = () => invoke<Reminder[]>("reminder_list");
+
+/* ---- Local notes ---- */
+export const noteCreate = (text: string) =>
+  invoke<Note>("note_create", { text });
+
+export const noteList = () => invoke<Note[]>("note_list");
+
+export const noteRemove = (id: string) => invoke<void>("note_remove", { id });
 
 /* ---- Background timers ---- */
 export const timerStart = (spec: string, label?: string) =>

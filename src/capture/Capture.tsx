@@ -10,6 +10,7 @@ import {
   LayoutTemplate,
   Link2,
   Settings as SettingsIcon,
+  Trash2,
   X,
   Zap,
 } from "lucide-react";
@@ -23,6 +24,11 @@ import {
   providerDeleteTask,
   providerListDue,
   providerListTemplates,
+  noteCreate,
+  noteList,
+  noteRemove,
+  reminderList,
+  reminderRemove,
   reminderSchedule,
   timerStart,
 } from "../ipc";
@@ -42,8 +48,10 @@ import {
 } from "./commands";
 import {
   PROVIDER_LABELS,
+  type Note,
   type ProviderId,
   type ProviderStatus,
+  type Reminder,
   type TaskSummary,
   type Template,
 } from "../types";
@@ -52,6 +60,10 @@ const delay = (ms: number) => new Promise((r) => setTimeout(r, ms));
 
 type OpenedPayload = { prefill?: string | null };
 type SupResults = { providerId: string; items: TaskSummary[] };
+// /notes and /reminders share one deletable-list panel.
+type LocalList =
+  | { kind: "notes"; items: Note[] }
+  | { kind: "reminders"; items: Reminder[] };
 
 // Shown until list_providers() resolves, so /trello · /linear appear immediately.
 const DEFAULT_PROVIDERS: ProviderStatus[] = [
@@ -87,6 +99,70 @@ function formatDue(iso: string): string {
 
 const labelFor = (id: string): string => PROVIDER_LABELS[id as ProviderId] ?? id;
 
+/** A row in the /notes · /reminders panel: text, timestamp, and a delete button. */
+function LocalRow({
+  primary,
+  when,
+  first,
+  onDelete,
+}: {
+  primary: string;
+  when: string;
+  first: boolean;
+  onDelete: () => void;
+}) {
+  return (
+    <div
+      className="row"
+      style={{
+        display: "flex",
+        alignItems: "center",
+        gap: 10,
+        padding: "11px 16px",
+        borderTop: first ? "none" : `1px solid ${T.hairline}`,
+      }}
+    >
+      <span
+        style={{
+          flex: 1,
+          minWidth: 0,
+          fontSize: 13.5,
+          color: T.text,
+          overflow: "hidden",
+          textOverflow: "ellipsis",
+          whiteSpace: "nowrap",
+        }}
+        title={primary}
+      >
+        {primary}
+      </span>
+      <span style={{ flexShrink: 0, fontSize: 12, color: T.faint }}>
+        {formatWhen(when)}
+      </span>
+      <button
+        className="icon-btn"
+        onClick={onDelete}
+        title="Delete"
+        style={{
+          display: "grid",
+          placeItems: "center",
+          width: 26,
+          height: 26,
+          flexShrink: 0,
+          padding: 0,
+          borderRadius: 7,
+          border: `1px solid ${T.border}`,
+          background: "rgba(255,255,255,0.04)",
+          color: T.sub,
+          cursor: "pointer",
+        }}
+      >
+        <Trash2 size={14} />
+      </button>
+    </div>
+  );
+}
+
 export function Capture() {
   const { settings, setSettings, update, updateProvider } = useSettings();
   const [text, setText] = useState("");
@@ -99,6 +175,7 @@ export function Capture() {
   const [due, setDue] = useState<string | null>(null);
   const [providers, setProviders] = useState<ProviderStatus[]>([]);
   const [supResults, setSupResults] = useState<SupResults | null>(null);
+  const [localList, setLocalList] = useState<LocalList | null>(null);
   const [pickerOpen, setPickerOpen] = useState(false);
   const [dropdownIdx, setDropdownIdx] = useState(0);
   // The template the next capture is based on (from a provider default or a
@@ -231,6 +308,7 @@ export function Capture() {
       setToast(null);
       setError(null);
       setSupResults(null);
+      setLocalList(null);
       setPickerOpen(false);
       setExpanded(false);
       setDescription("");
@@ -310,6 +388,11 @@ export function Capture() {
         setPickerOpen(false);
         return;
       }
+      if (localList) {
+        setLocalList(null);
+        setText("");
+        return;
+      }
       if (supResults) {
         setSupResults(null);
         setText("");
@@ -323,7 +406,7 @@ export function Capture() {
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, [pickerOpen, supResults, expanded, isCommand, update]);
+  }, [pickerOpen, localList, supResults, expanded, isCommand, update]);
 
   const finishWithToast = async (message: string) => {
     setSending(false);
@@ -332,6 +415,7 @@ export function Capture() {
     setDescription("");
     setDue(null);
     setSupResults(null);
+    setLocalList(null);
     setToast(message);
     if (settings.soundOnCapture) playChime();
     // The bar stays open after a capture/command so you can keep going; refocus
@@ -410,6 +494,36 @@ export function Capture() {
           setSending(false);
           setText("");
           setSupResults({ providerId, items });
+          break;
+        }
+        case "note": {
+          const body = p.rest.trim();
+          if (!body) {
+            setError("What should the note say?");
+            triggerShake();
+            return;
+          }
+          setSending(true);
+          await noteCreate(body);
+          await finishWithToast("Note saved");
+          break;
+        }
+        case "notes": {
+          setSending(true);
+          const items = await noteList();
+          setSending(false);
+          setText("");
+          setLocalList({ kind: "notes", items });
+          break;
+        }
+        case "reminders": {
+          setSending(true);
+          const items = await reminderList();
+          setSending(false);
+          setText("");
+          // Soonest-first; the stored order is just insertion order.
+          items.sort((a, b) => a.fireAt.localeCompare(b.fireAt));
+          setLocalList({ kind: "reminders", items });
           break;
         }
         case "template": {
@@ -519,10 +633,31 @@ export function Capture() {
     inputRef.current?.focus();
   };
 
+  // Delete a note/reminder from its list panel: remove server-side, then drop it
+  // from the visible list (keeps the panel open so you can clear several).
+  const removeLocalItem = async (id: string) => {
+    if (!localList) return;
+    try {
+      if (localList.kind === "notes") await noteRemove(id);
+      else await reminderRemove(id);
+    } catch (e) {
+      setError(String(e));
+      triggerShake();
+      return;
+    }
+    setLocalList((cur) => {
+      if (!cur) return null;
+      return cur.kind === "notes"
+        ? { kind: "notes", items: cur.items.filter((n) => n.id !== id) }
+        : { kind: "reminders", items: cur.items.filter((r) => r.id !== id) };
+    });
+  };
+
   const onChangeText = (v: string) => {
     setText(v);
     if (error) setError(null);
     if (supResults) setSupResults(null);
+    if (localList) setLocalList(null);
   };
 
   const focusDescription = () => {
@@ -577,8 +712,10 @@ export function Capture() {
       if (e.key === "Enter") {
         e.preventDefault();
         // A fully-typed command runs; a partial match completes first.
-        // `/template` always completes into its arg zone (never "runs").
-        if (hi && hi.token === parsed.token && hi.token !== "template") void run();
+        // `/template` and `/note` always complete into their arg zone (the text
+        // they need follows the token), never "run" on the bare command.
+        const completesOnly = hi?.token === "template" || hi?.token === "note";
+        if (hi && hi.token === parsed.token && !completesOnly) void run();
         else completeWith(hi);
         return;
       }
@@ -1233,6 +1370,70 @@ export function Capture() {
                       </span>
                     )}
                   </button>
+                ))
+              )}
+            </motion.div>
+          )}
+        </AnimatePresence>
+
+        {/* /notes · /reminders — deletable local lists */}
+        <AnimatePresence>
+          {localList && (
+            <motion.div
+              initial={{ opacity: 0, y: 8 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: 8 }}
+              transition={{ duration: 0.22, ease: [0.16, 1, 0.3, 1] }}
+              style={{
+                position: "relative",
+                zIndex: 1,
+                background: "#121420",
+                border: `1px solid ${T.border}`,
+                borderRadius: 14,
+                overflowX: "hidden",
+                overflowY: "auto",
+                maxHeight: 244,
+                boxShadow: "0 24px 70px -12px rgba(0,0,0,0.65)",
+              }}
+            >
+              <div
+                style={{
+                  padding: "10px 16px",
+                  borderBottom: `1px solid ${T.hairline}`,
+                  fontSize: 11,
+                  color: T.faint,
+                  fontWeight: 600,
+                  letterSpacing: "0.04em",
+                  textTransform: "uppercase",
+                }}
+              >
+                {localList.kind === "notes" ? "Notes" : "Reminders"}
+              </div>
+              {localList.items.length === 0 ? (
+                <div style={{ padding: "16px", fontSize: 13, color: T.sub }}>
+                  {localList.kind === "notes"
+                    ? "No notes yet — save one with /note."
+                    : "No reminders set — add one with /remind."}
+                </div>
+              ) : localList.kind === "notes" ? (
+                localList.items.map((n, i) => (
+                  <LocalRow
+                    key={n.id}
+                    primary={n.text}
+                    when={n.createdAt}
+                    first={i === 0}
+                    onDelete={() => void removeLocalItem(n.id)}
+                  />
+                ))
+              ) : (
+                localList.items.map((r, i) => (
+                  <LocalRow
+                    key={r.id}
+                    primary={r.message}
+                    when={r.fireAt}
+                    first={i === 0}
+                    onDelete={() => void removeLocalItem(r.id)}
+                  />
                 ))
               )}
             </motion.div>

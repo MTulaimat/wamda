@@ -1,5 +1,6 @@
 mod commands;
 mod linear;
+mod notes;
 mod provider;
 mod reminders;
 mod settings;
@@ -107,6 +108,9 @@ pub fn run() {
             commands::reminder_schedule,
             commands::reminder_remove,
             commands::reminder_list,
+            commands::note_create,
+            commands::note_list,
+            commands::note_remove,
             commands::timer_start,
         ])
         .run(tauri::generate_context!())
