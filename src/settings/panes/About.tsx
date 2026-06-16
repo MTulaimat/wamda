@@ -1,7 +1,16 @@
+import { useEffect, useState } from "react";
+import { getVersion } from "@tauri-apps/api/app";
 import { Zap } from "lucide-react";
 import { T } from "../../tokens";
 
 export function About() {
+  // Read the real version from the Tauri config at runtime so this never drifts
+  // out of sync with tauri.conf.json / Cargo.toml on a release bump.
+  const [version, setVersion] = useState("");
+  useEffect(() => {
+    void getVersion().then(setVersion).catch(() => {});
+  }, []);
+
   return (
     <>
       <div style={{ display: "flex", alignItems: "center", gap: 13, marginBottom: 18 }}>
@@ -23,7 +32,7 @@ export function About() {
             Wamda
           </div>
           <div className="mono" style={{ fontSize: 12, color: T.faint, marginTop: 2 }}>
-            v0.2.0
+            {version ? `v${version}` : ""}
           </div>
         </div>
       </div>
