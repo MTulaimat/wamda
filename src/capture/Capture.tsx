@@ -165,6 +165,9 @@ export function Capture() {
   const defTplId = settings.providers[dp].templateId;
   const defTplName = settings.providers[dp].templateName;
 
+  // The button loader reads "Adding…" only for task sends (not local commands).
+  const showSendLoader = !isCommand || !!activeSpec?.providerId;
+
   // Start hidden; the entrance plays on the first (and every) show event.
   useEffect(() => {
     controls.set(ENTRANCE_FROM);
@@ -853,7 +856,9 @@ export function Capture() {
                 style={{
                   display: "flex",
                   alignItems: "center",
+                  justifyContent: "center",
                   gap: 8,
+                  minWidth: 96,
                   padding: "6px 12px",
                   borderRadius: 9,
                   background: "var(--accent)",
@@ -864,7 +869,25 @@ export function Capture() {
                   boxShadow: "0 4px 14px -4px rgba(110,123,255,0.7)",
                 }}
               >
-                {submitLabel} <CornerDownLeft size={14} />
+                {sending ? (
+                  <>
+                    <span
+                      style={{
+                        width: 14,
+                        height: 14,
+                        border: "2px solid rgba(255,255,255,0.4)",
+                        borderTopColor: "#fff",
+                        borderRadius: "50%",
+                        animation: "spin .7s linear infinite",
+                      }}
+                    />
+                    {showSendLoader ? "Adding…" : "Working…"}
+                  </>
+                ) : (
+                  <>
+                    {submitLabel} <CornerDownLeft size={14} />
+                  </>
+                )}
               </button>
             </div>
           </div>

@@ -9,7 +9,7 @@
 use serde::de::DeserializeOwned;
 use serde::{Deserialize, Serialize};
 
-use crate::provider::{Provider, TaskInput, TaskRef, TaskSummary, Template};
+use crate::provider::{Person, Provider, TaskInput, TaskRef, TaskSummary, Template};
 use crate::settings::Settings;
 
 const ENDPOINT: &str = "https://api.linear.app/graphql";
@@ -17,6 +17,7 @@ const ENDPOINT: &str = "https://api.linear.app/graphql";
 pub struct LinearProvider {
     api_key: String,
     team_id: String,
+    assignee_id: String,
 }
 
 impl LinearProvider {
@@ -24,6 +25,7 @@ impl LinearProvider {
         Self {
             api_key: s.providers.linear.api_key.clone(),
             team_id: s.providers.linear.team_id.clone(),
+            assignee_id: s.providers.linear.assignee_id.clone(),
         }
     }
 }
@@ -108,6 +110,9 @@ mutation Create($input: IssueCreateInput!) {
 const TEAMS: &str = r#"
 query Teams { teams(first: 100) { nodes { id name key } } }"#;
 
+const USERS: &str = r#"
+query Users { users(first: 250) { nodes { id name displayName email } } }"#;
+
 const ASSIGNED: &str = r#"
 query Assigned($first: Int!) {
   viewer {
@@ -140,6 +145,9 @@ impl Provider for LinearProvider {
         }
         if let Some(due) = input.due {
             issue["dueDate"] = due.to_string().into(); // "yyyy-mm-dd"
+        }
+        if !self.assignee_id.is_empty() {
+            issue["assigneeId"] = self.assignee_id.clone().into();
         }
 
         #[derive(Deserialize)]
@@ -248,4 +256,41 @@ pub async fn get_teams(api_key: &str) -> Result<Vec<Team>, String> {
     }
     let data: Data = graphql(api_key, TEAMS, serde_json::json!({})).await?;
     Ok(data.teams.nodes)
+}
+
+/// Workspace users, for the default-assignee picker (secondary line is email).
+pub async fn get_users(api_key: &str) -> Result<Vec<Person>, String> {
+    #[derive(Deserialize)]
+    struct Data {
+        users: Conn,
+    }
+    #[derive(Deserialize)]
+    struct Conn {
+        nodes: Vec<Node>,
+    }
+    #[derive(Deserialize)]
+    struct Node {
+        id: String,
+        #[serde(default)]
+        name: String,
+        #[serde(rename = "displayName", default)]
+        display_name: String,
+        #[serde(default)]
+        email: String,
+    }
+    let data: Data = graphql(api_key, USERS, serde_json::json!({})).await?;
+    Ok(data
+        .users
+        .nodes
+        .into_iter()
+        .map(|n| Person {
+            name: if n.display_name.is_empty() {
+                n.name
+            } else {
+                n.display_name
+            },
+            detail: n.email,
+            id: n.id,
+        })
+        .collect())
 }

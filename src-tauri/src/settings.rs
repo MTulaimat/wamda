@@ -19,6 +19,11 @@ pub struct TrelloConfig {
     pub template_id: String,
     #[serde(default)]
     pub template_name: String,
+    /// Optional default assignee (board member) added to every card.
+    #[serde(default)]
+    pub assignee_id: String,
+    #[serde(default)]
+    pub assignee_name: String,
     pub connected: bool,
 }
 
@@ -34,6 +39,11 @@ pub struct LinearConfig {
     pub template_id: String,
     #[serde(default)]
     pub template_name: String,
+    /// Optional default assignee (Linear user) set on every issue.
+    #[serde(default)]
+    pub assignee_id: String,
+    #[serde(default)]
+    pub assignee_name: String,
     pub connected: bool,
 }
 

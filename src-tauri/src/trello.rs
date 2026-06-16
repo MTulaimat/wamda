@@ -1,6 +1,6 @@
 use serde::{Deserialize, Serialize};
 
-use crate::provider::{Provider, TaskInput, TaskRef, TaskSummary, Template};
+use crate::provider::{Person, Provider, TaskInput, TaskRef, TaskSummary, Template};
 use crate::settings::Settings;
 
 const BASE: &str = "https://api.trello.com/1";
@@ -129,6 +129,59 @@ pub async fn get_templates(
         .collect())
 }
 
+/// Board members, for the default-assignee picker. Trello doesn't expose member
+/// emails via the API, so the secondary line is the @username.
+pub async fn get_members(
+    key: &str,
+    token: &str,
+    board_id: &str,
+) -> Result<Vec<Person>, String> {
+    if board_id.is_empty() {
+        return Ok(Vec::new());
+    }
+    let resp = client()
+        .get(format!("{BASE}/boards/{board_id}/members"))
+        .query(&[
+            ("key", key),
+            ("token", token),
+            ("fields", "fullName,username"),
+        ])
+        .send()
+        .await
+        .map_err(net_err)?;
+    if !resp.status().is_success() {
+        return Err(status_err(resp.status()));
+    }
+    #[derive(Deserialize)]
+    struct Row {
+        id: String,
+        #[serde(rename = "fullName", default)]
+        full_name: String,
+        #[serde(default)]
+        username: String,
+    }
+    let rows = resp
+        .json::<Vec<Row>>()
+        .await
+        .map_err(|_| "Unexpected response from Trello".to_string())?;
+    Ok(rows
+        .into_iter()
+        .map(|r| Person {
+            name: if r.full_name.is_empty() {
+                r.username.clone()
+            } else {
+                r.full_name
+            },
+            detail: if r.username.is_empty() {
+                String::new()
+            } else {
+                format!("@{}", r.username)
+            },
+            id: r.id,
+        })
+        .collect())
+}
+
 pub async fn create_card(key: &str, token: &str, list_id: &str, name: &str) -> Result<Card, String> {
     // reqwest `.query` url-encodes the card name for us.
     let resp = client()
@@ -153,6 +206,7 @@ pub struct TrelloProvider {
     token: String,
     board_id: String,
     list_id: String,
+    assignee_id: String,
 }
 
 impl TrelloProvider {
@@ -162,6 +216,7 @@ impl TrelloProvider {
             token: s.providers.trello.token.clone(),
             board_id: s.providers.trello.board_id.clone(),
             list_id: s.providers.trello.list_id.clone(),
+            assignee_id: s.providers.trello.assignee_id.clone(),
         }
     }
 }
@@ -199,8 +254,20 @@ impl Provider for TrelloProvider {
                 // Create from a card template: copy its checklists/labels/etc.
                 // The explicit name (and any desc/due above) still override.
                 q.push(("idCardSource", tid));
-                q.push(("keepFromSource", "all".into()));
+                // `all` also copies the template's members, which would overwrite
+                // the explicit default assignee below. When we have an assignee,
+                // copy everything EXCEPT members so idMembers sticks.
+                let keep = if self.assignee_id.is_empty() {
+                    "all"
+                } else {
+                    "attachments,checklists,comments,customFields,due,start,labels,stickers"
+                };
+                q.push(("keepFromSource", keep.into()));
             }
+        }
+        if !self.assignee_id.is_empty() {
+            // Default assignee: add the configured board member to the card.
+            q.push(("idMembers", self.assignee_id.clone()));
         }
         let resp = client()
             .post(format!("{BASE}/cards"))

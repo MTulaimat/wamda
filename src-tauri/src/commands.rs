@@ -41,6 +41,15 @@ pub async fn trello_get_templates(
 }
 
 #[tauri::command]
+pub async fn trello_get_members(
+    key: String,
+    token: String,
+    board_id: String,
+) -> Result<Vec<provider::Person>, String> {
+    trello::get_members(&key, &token, &board_id).await
+}
+
+#[tauri::command]
 pub async fn trello_create_card(
     key: String,
     token: String,
@@ -173,6 +182,11 @@ pub async fn provider_list_templates<R: Runtime>(
 #[tauri::command]
 pub async fn linear_get_teams(api_key: String) -> Result<Vec<linear::Team>, String> {
     linear::get_teams(&api_key).await
+}
+
+#[tauri::command]
+pub async fn linear_get_users(api_key: String) -> Result<Vec<provider::Person>, String> {
+    linear::get_users(&api_key).await
 }
 
 // ---- Local reminders ----

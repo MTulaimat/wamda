@@ -9,6 +9,8 @@ export type TrelloConfig = {
   listName: string;
   templateId: string;
   templateName: string;
+  assigneeId: string;
+  assigneeName: string;
   connected: boolean;
 };
 
@@ -18,6 +20,8 @@ export type LinearConfig = {
   teamName: string;
   templateId: string;
   templateName: string;
+  assigneeId: string;
+  assigneeName: string;
   connected: boolean;
 };
 
@@ -43,6 +47,7 @@ export type List = { id: string; name: string };
 export type Card = { id: string; name: string; url: string };
 export type Team = { id: string; name: string; key: string };
 export type Template = { id: string; name: string };
+export type Person = { id: string; name: string; detail: string };
 
 /* Provider-agnostic DTOs (mirror provider.rs). */
 export type TaskInput = {
@@ -79,6 +84,8 @@ export const DEFAULT_SETTINGS: Settings = {
       listName: "",
       templateId: "",
       templateName: "",
+      assigneeId: "",
+      assigneeName: "",
       connected: false,
     },
     linear: {
@@ -87,6 +94,8 @@ export const DEFAULT_SETTINGS: Settings = {
       teamName: "",
       templateId: "",
       templateName: "",
+      assigneeId: "",
+      assigneeName: "",
       connected: false,
     },
   },

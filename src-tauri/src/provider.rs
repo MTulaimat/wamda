@@ -55,6 +55,15 @@ pub struct Template {
     pub name: String,
 }
 
+/// Someone a task can be assigned to (Trello board member / Linear user). The
+/// `detail` line is secondary picker text — @username (Trello) or email (Linear).
+#[derive(Serialize, Debug, Clone)]
+pub struct Person {
+    pub id: String,
+    pub name: String,
+    pub detail: String,
+}
+
 /// Shared contract. Both providers implement it; the enum below forwards to them.
 /// Never used as `dyn` (async fns aren't object-safe) — hence the allow.
 #[allow(async_fn_in_trait)]

@@ -5,13 +5,16 @@ import { T } from "../../tokens";
 import { Field, inputStyle } from "../widgets";
 import {
   linearGetTeams,
+  linearGetUsers,
   trelloGetBoards,
   trelloGetLists,
+  trelloGetMembers,
   trelloGetTemplates,
 } from "../../ipc";
 import {
   type Board,
   type List,
+  type Person,
   PROVIDER_LABELS,
   type Providers,
   type ProviderId,
@@ -207,6 +210,7 @@ function TrelloCard({ settings, update, updateProvider }: Props) {
   const [boards, setBoards] = useState<Board[]>([]);
   const [lists, setLists] = useState<List[]>([]);
   const [templates, setTemplates] = useState<Template[]>([]);
+  const [members, setMembers] = useState<Person[]>([]);
   const [testing, setTesting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const didPreload = useRef(false);
@@ -221,6 +225,9 @@ function TrelloCard({ settings, update, updateProvider }: Props) {
           if (cfg.boardId) {
             void trelloGetTemplates(cfg.key, cfg.token, cfg.boardId)
               .then(setTemplates)
+              .catch(() => {});
+            void trelloGetMembers(cfg.key, cfg.token, cfg.boardId)
+              .then(setMembers)
               .catch(() => {});
             return trelloGetLists(cfg.key, cfg.token, cfg.boardId).then(setLists);
           }
@@ -255,16 +262,21 @@ function TrelloCard({ settings, update, updateProvider }: Props) {
       listName: "",
       templateId: "",
       templateName: "",
+      assigneeId: "",
+      assigneeName: "",
     });
     setLists([]);
     setTemplates([]);
+    setMembers([]);
     try {
-      const [ls, ts] = await Promise.all([
+      const [ls, ts, ms] = await Promise.all([
         trelloGetLists(key || cfg.key, token || cfg.token, id),
         trelloGetTemplates(key || cfg.key, token || cfg.token, id),
+        trelloGetMembers(key || cfg.key, token || cfg.token, id),
       ]);
       setLists(ls);
       setTemplates(ts);
+      setMembers(ms);
     } catch (e) {
       setError(String(e));
     }
@@ -278,6 +290,11 @@ function TrelloCard({ settings, update, updateProvider }: Props) {
   const onTemplate = (id: string) => {
     const name = templates.find((t) => t.id === id)?.name ?? "";
     updateProvider("trello", { templateId: id, templateName: name });
+  };
+
+  const onAssignee = (id: string) => {
+    const name = members.find((m) => m.id === id)?.name ?? "";
+    updateProvider("trello", { assigneeId: id, assigneeName: name });
   };
 
   return (
@@ -397,6 +414,27 @@ function TrelloCard({ settings, update, updateProvider }: Props) {
         </span>
         .
       </p>
+      <div style={{ height: 1, background: T.hairline, margin: "16px 0" }} />
+      <Field label="Default assignee">
+        <div className="field-wrap" style={selectWrap(cfg.connected && !!cfg.boardId)}>
+          <select
+            value={cfg.assigneeId}
+            onChange={(e) => onAssignee(e.target.value)}
+            style={selectStyle}
+          >
+            <option value="" style={optBg}>
+              Unassigned
+            </option>
+            {members.map((m) => (
+              <option key={m.id} value={m.id} style={optBg}>
+                {m.name}
+                {m.detail ? ` · ${m.detail}` : ""}
+              </option>
+            ))}
+          </select>
+          <ChevronDown size={15} color={T.faint} />
+        </div>
+      </Field>
     </ProviderCard>
   );
 }
@@ -405,6 +443,7 @@ function LinearCard({ settings, update, updateProvider }: Props) {
   const cfg = settings.providers.linear;
   const [apiKey, setApiKey] = useState(cfg.apiKey);
   const [teams, setTeams] = useState<Team[]>([]);
+  const [users, setUsers] = useState<Person[]>([]);
   const [testing, setTesting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const didPreload = useRef(false);
@@ -418,6 +457,7 @@ function LinearCard({ settings, update, updateProvider }: Props) {
         .catch(() => {
           /* stale key — user can re-test */
         });
+      void linearGetUsers(cfg.apiKey).then(setUsers).catch(() => {});
     }
   }, [cfg.apiKey]);
 
@@ -428,6 +468,7 @@ function LinearCard({ settings, update, updateProvider }: Props) {
       const t = await linearGetTeams(apiKey);
       setTeams(t);
       updateProvider("linear", { apiKey, connected: true });
+      void linearGetUsers(apiKey).then(setUsers).catch(() => {});
     } catch (e) {
       updateProvider("linear", { connected: false });
       setError(String(e));
@@ -439,6 +480,11 @@ function LinearCard({ settings, update, updateProvider }: Props) {
   const onTeam = (id: string) => {
     const name = teams.find((t) => t.id === id)?.name ?? "";
     updateProvider("linear", { teamId: id, teamName: name });
+  };
+
+  const onAssignee = (id: string) => {
+    const name = users.find((u) => u.id === id)?.name ?? "";
+    updateProvider("linear", { assigneeId: id, assigneeName: name });
   };
 
   return (
@@ -496,6 +542,26 @@ function LinearCard({ settings, update, updateProvider }: Props) {
             {teams.map((t) => (
               <option key={t.id} value={t.id} style={optBg}>
                 {t.name}
+              </option>
+            ))}
+          </select>
+          <ChevronDown size={15} color={T.faint} />
+        </div>
+      </Field>
+      <Field label="Default assignee">
+        <div className="field-wrap" style={selectWrap(cfg.connected)}>
+          <select
+            value={cfg.assigneeId}
+            onChange={(e) => onAssignee(e.target.value)}
+            style={selectStyle}
+          >
+            <option value="" style={optBg}>
+              Unassigned
+            </option>
+            {users.map((u) => (
+              <option key={u.id} value={u.id} style={optBg}>
+                {u.name}
+                {u.detail ? ` · ${u.detail}` : ""}
               </option>
             ))}
           </select>
