@@ -51,6 +51,9 @@ export const linearGetUsers = (apiKey: string) =>
 export const providerCreateTask = (providerId: string, input: TaskInput) =>
   invoke<TaskRef>("provider_create_task", { providerId, input });
 
+export const providerDeleteTask = (providerId: string, taskId: string) =>
+  invoke<void>("provider_delete_task", { providerId, taskId });
+
 export const providerListDue = (providerId: string, limit: number) =>
   invoke<TaskSummary[]>("provider_list_due", { providerId, limit });
 

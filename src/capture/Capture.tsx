@@ -20,6 +20,7 @@ import {
   listProviders,
   openSettings,
   providerCreateTask,
+  providerDeleteTask,
   providerListDue,
   providerListTemplates,
   reminderSchedule,
@@ -109,6 +110,15 @@ export function Capture() {
   const inputRef = useRef<HTMLInputElement>(null);
   const descRef = useRef<HTMLTextAreaElement>(null);
   const openDatePickerRef = useRef<(() => void) | null>(null);
+  // The last task we created, for `/undo`. A ref (not state) so it survives the
+  // capture window hiding/reopening — which runs resetAll() and clears form state.
+  const lastSubmitRef = useRef<{
+    providerId: ProviderId;
+    taskId: string;
+    title: string;
+    description: string;
+    due: string | null;
+  } | null>(null);
   // Which provider's templates are currently cached (null = not loaded).
   const templatesProvider = useRef<string | null>(null);
   const controls = useAnimationControls();
@@ -315,7 +325,7 @@ export function Capture() {
     return () => window.removeEventListener("keydown", onKey);
   }, [pickerOpen, supResults, expanded, isCommand, update]);
 
-  const finishWithToast = async (message: string, keepOpen = false) => {
+  const finishWithToast = async (message: string) => {
     setSending(false);
     setText("");
     setExpanded(false);
@@ -324,17 +334,14 @@ export function Capture() {
     setSupResults(null);
     setToast(message);
     if (settings.soundOnCapture) playChime();
-    if (keepOpen) {
-      // Focus after the re-render re-enables the input (disabled={sending}).
-      setTimeout(() => inputRef.current?.focus(), 0);
-    }
+    // The bar stays open after a capture/command so you can keep going; refocus
+    // for the next entry (after the re-render re-enables the disabled input).
+    setTimeout(() => inputRef.current?.focus(), 0);
     await delay(1300);
     setToast(null);
-    if (!keepOpen) void hideCapture();
   };
 
-  // keepOpen (Shift+Enter) leaves the bar open after adding, to capture more.
-  const run = async (keepOpen = false) => {
+  const run = async () => {
     const p = parseCommand(text);
 
     // Default task capture (no leading slash).
@@ -352,17 +359,23 @@ export function Capture() {
       setError(null);
       setSending(true);
       try {
-        await providerCreateTask(dp, {
+        const created = await providerCreateTask(dp, {
           title: value,
           description: description.trim() || null,
           due,
           templateId: template?.id ?? null,
         });
+        lastSubmitRef.current = {
+          providerId: dp,
+          taskId: created.id,
+          title: value,
+          description: description.trim(),
+          due,
+        };
         await finishWithToast(
           template
             ? `Added to ${destinationLabel} · from ${template.name}`
             : `Added to ${destinationLabel}`,
-          keepOpen,
         );
       } catch (e) {
         setSending(false); // restores the input with text intact
@@ -380,14 +393,14 @@ export function Capture() {
           const { phrase, message } = splitRemind(p.rest);
           setSending(true);
           const r = await reminderSchedule(phrase, message);
-          await finishWithToast(`Reminder set for ${formatWhen(r.fireAt)}`, keepOpen);
+          await finishWithToast(`Reminder set for ${formatWhen(r.fireAt)}`);
           break;
         }
         case "timer": {
           const { spec, label } = parseTimer(p.rest);
           setSending(true);
           const confirm = await timerStart(spec, label);
-          await finishWithToast(confirm, keepOpen);
+          await finishWithToast(confirm);
           break;
         }
         case "sup": {
@@ -406,6 +419,35 @@ export function Capture() {
             templateMatches[Math.min(dropdownIdx, templateMatches.length - 1)];
           if (hi) pickTemplate(hi);
           else triggerShake();
+          return;
+        }
+        case "undo": {
+          const last = lastSubmitRef.current;
+          if (!last) {
+            setError("Nothing to undo yet");
+            triggerShake();
+            return;
+          }
+          setSending(true);
+          try {
+            await providerDeleteTask(last.providerId, last.taskId);
+          } catch (e) {
+            setSending(false);
+            setError(String(e));
+            triggerShake();
+            return;
+          }
+          lastSubmitRef.current = null; // consumed — can't undo the same task twice
+          setSending(false);
+          // Bring the deleted task back into the bar so it can be edited & re-added.
+          if (last.providerId !== dp) update({ defaultProvider: last.providerId });
+          setDescription(last.description);
+          setDue(last.due);
+          setExpanded(!!(last.description || last.due));
+          setText(last.title);
+          setToast(`Removed from ${PROVIDER_LABELS[last.providerId]} — edit & re-add`);
+          setTimeout(() => setToast(null), 1700);
+          setTimeout(() => inputRef.current?.focus(), 0);
           return;
         }
         default: {
@@ -435,12 +477,19 @@ export function Capture() {
             return;
           }
           setSending(true);
-          await providerCreateTask(pid, {
+          const created = await providerCreateTask(pid, {
             title: p.rest.trim(),
             description: description.trim() || null,
             due,
           });
-          await finishWithToast(`Added to ${PROVIDER_LABELS[pid]}`, keepOpen);
+          lastSubmitRef.current = {
+            providerId: pid,
+            taskId: created.id,
+            title: p.rest.trim(),
+            description: description.trim(),
+            due,
+          };
+          await finishWithToast(`Added to ${PROVIDER_LABELS[pid]}`);
         }
       }
     } catch (e) {
@@ -536,7 +585,7 @@ export function Capture() {
     }
     if (e.key === "Enter") {
       e.preventDefault();
-      void run(e.shiftKey); // Shift+Enter: add and keep the bar open
+      void run();
       return;
     }
     // Tab moves into the description (expanding details first).
@@ -559,7 +608,7 @@ export function Capture() {
   const onDescKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
     if ((e.ctrlKey || e.metaKey) && e.key === "Enter") {
       e.preventDefault();
-      void run(e.shiftKey); // Ctrl+Shift+Enter: add and keep open
+      void run();
       return;
     }
     // Shift+Tab returns to the title.
@@ -783,17 +832,6 @@ export function Capture() {
               </span>
             ) : (
               <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                <span
-                  style={{
-                    fontSize: 11,
-                    color: T.faint,
-                    fontWeight: 600,
-                    letterSpacing: "0.04em",
-                    textTransform: "uppercase",
-                  }}
-                >
-                  Sends to
-                </span>
                 <button
                   className="btn"
                   onClick={() => setPickerOpen((v) => !v)}
@@ -851,7 +889,7 @@ export function Capture() {
               </button>
               <button
                 className="btn"
-                onClick={(e) => void run(e.shiftKey)}
+                onClick={() => void run()}
                 disabled={sending}
                 style={{
                   display: "flex",

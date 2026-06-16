@@ -72,6 +72,9 @@ pub trait Provider {
     fn label(&self) -> &str;
     fn is_configured(&self) -> bool;
     async fn create_task(&self, input: TaskInput) -> Result<TaskRef, String>;
+    /// Delete a task by its provider-native id. Powers `/undo` (remove the last
+    /// card/issue so the user can edit and re-add it).
+    async fn delete_task(&self, id: &str) -> Result<(), String>;
     async fn list_due(&self, limit: usize) -> Result<Vec<TaskSummary>, String>;
     /// Templates the user can base a new task on. Providers that don't support
     /// templating return an empty vec (the picker then shows an empty state).
@@ -115,6 +118,12 @@ impl ProviderKind {
         match self {
             Self::Trello(p) => p.create_task(input).await,
             Self::Linear(p) => p.create_task(input).await,
+        }
+    }
+    pub async fn delete_task(&self, id: &str) -> Result<(), String> {
+        match self {
+            Self::Trello(p) => p.delete_task(id).await,
+            Self::Linear(p) => p.delete_task(id).await,
         }
     }
     pub async fn list_due(&self, limit: usize) -> Result<Vec<TaskSummary>, String> {

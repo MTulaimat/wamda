@@ -1,7 +1,13 @@
 /* Capture-bar command parsing + registry. Pure functions, no side effects. */
 import type { ProviderId, ProviderStatus } from "../types";
 
-export type CommandId = "remind" | "timer" | "sup" | "template" | "provider";
+export type CommandId =
+  | "remind"
+  | "timer"
+  | "sup"
+  | "template"
+  | "undo"
+  | "provider";
 
 export type CommandSpec = {
   id: CommandId;
@@ -38,6 +44,7 @@ export function buildRegistry(providers: ProviderStatus[]): CommandSpec[] {
     { id: "timer", token: "timer", title: "Start a timer", hint: "25m focus" },
     { id: "sup", token: "sup", title: "What's due", hint: "your upcoming tasks" },
     { id: "template", token: "template", title: "From a template", hint: "start from a saved template · Trello only" },
+    { id: "undo", token: "undo", title: "Undo last", hint: "delete the last task & bring it back to edit" },
   ];
   const routes = providers.map<CommandSpec>((p) => ({
     id: "provider",

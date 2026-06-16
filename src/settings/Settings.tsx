@@ -1,18 +1,20 @@
 import { useState } from "react";
-import { Info, Link2, Palette, Settings as SettingsIcon } from "lucide-react";
+import { Info, Keyboard, Link2, Palette, Settings as SettingsIcon } from "lucide-react";
 import { T } from "../tokens";
 import { PROVIDER_LABELS, type ProviderId } from "../types";
 import { useSettings } from "../useSettings";
 import { Titlebar } from "./Titlebar";
 import { General } from "./panes/General";
+import { Shortcuts } from "./panes/Shortcuts";
 import { Integrations } from "./panes/Integrations";
 import { Appearance } from "./panes/Appearance";
 import { About } from "./panes/About";
 
-type TabId = "general" | "integrations" | "appearance" | "about";
+type TabId = "general" | "shortcuts" | "integrations" | "appearance" | "about";
 
 const TABS: { id: TabId; label: string; icon: typeof SettingsIcon }[] = [
   { id: "general", label: "General", icon: SettingsIcon },
+  { id: "shortcuts", label: "Shortcuts", icon: Keyboard },
   { id: "integrations", label: "Integrations", icon: Link2 },
   { id: "appearance", label: "Appearance", icon: Palette },
   { id: "about", label: "About", icon: Info },
@@ -131,6 +133,9 @@ export function Settings() {
         >
           {loaded && tab === "general" && (
             <General settings={settings} update={update} />
+          )}
+          {loaded && tab === "shortcuts" && (
+            <Shortcuts settings={settings} update={update} />
           )}
           {loaded && tab === "integrations" && (
             <Integrations

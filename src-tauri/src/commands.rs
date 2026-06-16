@@ -122,6 +122,20 @@ pub async fn provider_create_task<R: Runtime>(
 }
 
 #[tauri::command]
+pub async fn provider_delete_task<R: Runtime>(
+    app: AppHandle<R>,
+    provider_id: String,
+    task_id: String,
+) -> Result<(), String> {
+    let s = settings::load(&app);
+    let p = ProviderKind::from_settings(&provider_id, &s)?;
+    if !p.is_configured() {
+        return Err(format!("{} isn't connected yet", p.label()));
+    }
+    p.delete_task(&task_id).await
+}
+
+#[tauri::command]
 pub async fn provider_list_due<R: Runtime>(
     app: AppHandle<R>,
     provider_id: String,

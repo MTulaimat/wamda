@@ -107,6 +107,9 @@ mutation Create($input: IssueCreateInput!) {
   issueCreate(input: $input) { success issue { id url identifier } }
 }"#;
 
+const ISSUE_DELETE: &str = r#"
+mutation Delete($id: String!) { issueDelete(id: $id) { success } }"#;
+
 const TEAMS: &str = r#"
 query Teams { teams(first: 100) { nodes { id name key } } }"#;
 
@@ -183,6 +186,30 @@ impl Provider for LinearProvider {
             id: issue.id,
             url: issue.url,
         })
+    }
+
+    async fn delete_task(&self, id: &str) -> Result<(), String> {
+        // issueDelete soft-deletes (moves to trash) — recoverable, which suits an
+        // undo affordance well.
+        #[derive(Deserialize)]
+        struct Data {
+            #[serde(rename = "issueDelete")]
+            delete: Del,
+        }
+        #[derive(Deserialize)]
+        struct Del {
+            success: bool,
+        }
+        let data: Data = graphql(
+            &self.api_key,
+            ISSUE_DELETE,
+            serde_json::json!({ "id": id }),
+        )
+        .await?;
+        if !data.delete.success {
+            return Err("Linear declined to delete the issue".into());
+        }
+        Ok(())
     }
 
     async fn list_due(&self, limit: usize) -> Result<Vec<TaskSummary>, String> {

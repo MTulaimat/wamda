@@ -285,6 +285,20 @@ impl Provider for TrelloProvider {
         Ok(TaskRef { id: c.id, url: c.url })
     }
 
+    async fn delete_task(&self, id: &str) -> Result<(), String> {
+        // DELETE /1/cards/{id} — `.query` keeps the token-bearing URL unsurfaced.
+        let resp = client()
+            .delete(format!("{BASE}/cards/{id}"))
+            .query(&[("key", self.key.as_str()), ("token", self.token.as_str())])
+            .send()
+            .await
+            .map_err(net_err)?;
+        if !resp.status().is_success() {
+            return Err(status_err(resp.status()));
+        }
+        Ok(())
+    }
+
     async fn list_due(&self, limit: usize) -> Result<Vec<TaskSummary>, String> {
         let resp = client()
             .get(format!("{BASE}/lists/{}/cards", self.list_id))

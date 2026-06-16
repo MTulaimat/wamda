@@ -97,6 +97,7 @@ pub fn run() {
             commands::hide_capture,
             commands::open_settings,
             commands::provider_create_task,
+            commands::provider_delete_task,
             commands::provider_list_due,
             commands::provider_status,
             commands::list_providers,

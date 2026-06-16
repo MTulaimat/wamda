@@ -65,6 +65,17 @@ input.bare::placeholder,textarea.bare::placeholder{color:${T.faint}}
 .linkish:hover{color:var(--accent)!important}
 .shake{animation:shake .32s ease}
 
+/* Scrollbars — slim, dark, theme-matched (Chromium/WebView2). The 3px
+   transparent border + padding-box clip floats a thin thumb inside the track.
+   Use background-color (not the background shorthand) so hover/active don't
+   reset the clip and fatten the thumb. */
+::-webkit-scrollbar{width:12px;height:12px}
+::-webkit-scrollbar-track{background:transparent}
+::-webkit-scrollbar-thumb{background-color:rgba(255,255,255,0.13);border:3px solid transparent;border-radius:8px;background-clip:padding-box}
+::-webkit-scrollbar-thumb:hover{background-color:rgba(255,255,255,0.22)}
+::-webkit-scrollbar-thumb:active{background-color:var(--accent)}
+::-webkit-scrollbar-corner{background:transparent}
+
 @media (prefers-reduced-motion:reduce){
   *{animation-duration:.001ms!important;animation-iteration-count:1!important}
 }
