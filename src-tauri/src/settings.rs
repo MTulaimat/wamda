@@ -14,6 +14,11 @@ pub struct TrelloConfig {
     pub board_name: String,
     pub list_id: String,
     pub list_name: String,
+    /// Optional default card template every capture starts from.
+    #[serde(default)]
+    pub template_id: String,
+    #[serde(default)]
+    pub template_name: String,
     pub connected: bool,
 }
 
@@ -23,6 +28,12 @@ pub struct LinearConfig {
     pub api_key: String,
     pub team_id: String,
     pub team_name: String,
+    /// Reserved so the default-template UI generalizes; Linear templating is not
+    /// wired yet (see linear::LinearProvider::list_templates).
+    #[serde(default)]
+    pub template_id: String,
+    #[serde(default)]
+    pub template_name: String,
     pub connected: bool,
 }
 

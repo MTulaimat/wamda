@@ -19,6 +19,10 @@ pub struct TaskInput {
     /// ISO `yyyy-mm-dd` from the UI (or null), parsed straight into a NaiveDate.
     #[serde(default)]
     pub due: Option<NaiveDate>,
+    /// Optional provider-native template to base the task on (e.g. a Trello card
+    /// template id). Providers without server-side templating ignore it.
+    #[serde(default)]
+    pub template_id: Option<String>,
 }
 
 #[derive(Serialize, Debug)]
@@ -43,6 +47,14 @@ pub struct ProviderStatus {
     pub label: String,
 }
 
+/// A provider-native template the user can base a new task on. Identified by an
+/// opaque, provider-specific id; the label is what the picker shows.
+#[derive(Serialize, Debug, Clone)]
+pub struct Template {
+    pub id: String,
+    pub name: String,
+}
+
 /// Shared contract. Both providers implement it; the enum below forwards to them.
 /// Never used as `dyn` (async fns aren't object-safe) — hence the allow.
 #[allow(async_fn_in_trait)]
@@ -52,6 +64,9 @@ pub trait Provider {
     fn is_configured(&self) -> bool;
     async fn create_task(&self, input: TaskInput) -> Result<TaskRef, String>;
     async fn list_due(&self, limit: usize) -> Result<Vec<TaskSummary>, String>;
+    /// Templates the user can base a new task on. Providers that don't support
+    /// templating return an empty vec (the picker then shows an empty state).
+    async fn list_templates(&self) -> Result<Vec<Template>, String>;
 }
 
 /// Static dispatch over the known providers, built per-call from live settings.
@@ -97,6 +112,12 @@ impl ProviderKind {
         match self {
             Self::Trello(p) => p.list_due(limit).await,
             Self::Linear(p) => p.list_due(limit).await,
+        }
+    }
+    pub async fn list_templates(&self) -> Result<Vec<Template>, String> {
+        match self {
+            Self::Trello(p) => p.list_templates().await,
+            Self::Linear(p) => p.list_templates().await,
         }
     }
 }

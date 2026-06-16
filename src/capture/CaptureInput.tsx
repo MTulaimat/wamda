@@ -9,6 +9,8 @@ type Props = {
   onKeyDown?: (e: React.KeyboardEvent<HTMLInputElement>) => void;
   placeholder?: string;
   disabled?: boolean;
+  /** Slot between the glyph and the input — used for the selected-template chip. */
+  leading?: React.ReactNode;
   /** Slot to the right of the input — reserved seam for a future dictate button. */
   trailing?: React.ReactNode;
 
@@ -40,6 +42,7 @@ export const CaptureInput = forwardRef<HTMLInputElement, Props>(
       onKeyDown,
       placeholder,
       disabled,
+      leading,
       trailing,
       showExpandToggle,
       expanded,
@@ -104,6 +107,8 @@ export const CaptureInput = forwardRef<HTMLInputElement, Props>(
           >
             <Zap size={18} color={T.faint} />
           </div>
+
+          {leading}
 
           <input
             ref={ref}

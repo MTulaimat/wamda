@@ -32,6 +32,15 @@ pub async fn trello_get_lists(
 }
 
 #[tauri::command]
+pub async fn trello_get_templates(
+    key: String,
+    token: String,
+    board_id: String,
+) -> Result<Vec<provider::Template>, String> {
+    trello::get_templates(&key, &token, &board_id).await
+}
+
+#[tauri::command]
 pub async fn trello_create_card(
     key: String,
     token: String,
@@ -146,6 +155,19 @@ pub fn list_providers<R: Runtime>(app: AppHandle<R>) -> Vec<ProviderStatus> {
                 })
         })
         .collect()
+}
+
+#[tauri::command]
+pub async fn provider_list_templates<R: Runtime>(
+    app: AppHandle<R>,
+    provider_id: String,
+) -> Result<Vec<provider::Template>, String> {
+    let s = settings::load(&app);
+    let p = ProviderKind::from_settings(&provider_id, &s)?;
+    if !p.is_configured() {
+        return Err(format!("{} isn't connected yet", p.label()));
+    }
+    p.list_templates().await
 }
 
 #[tauri::command]

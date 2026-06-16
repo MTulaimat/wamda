@@ -7,6 +7,8 @@ export type TrelloConfig = {
   boardName: string;
   listId: string;
   listName: string;
+  templateId: string;
+  templateName: string;
   connected: boolean;
 };
 
@@ -14,6 +16,8 @@ export type LinearConfig = {
   apiKey: string;
   teamId: string;
   teamName: string;
+  templateId: string;
+  templateName: string;
   connected: boolean;
 };
 
@@ -38,12 +42,14 @@ export type Board = { id: string; name: string };
 export type List = { id: string; name: string };
 export type Card = { id: string; name: string; url: string };
 export type Team = { id: string; name: string; key: string };
+export type Template = { id: string; name: string };
 
 /* Provider-agnostic DTOs (mirror provider.rs). */
 export type TaskInput = {
   title: string;
   description?: string | null;
   due?: string | null; // ISO yyyy-mm-dd
+  templateId?: string | null; // provider-native template to base the task on
 };
 export type TaskRef = { id: string; url: string };
 export type TaskSummary = { title: string; url: string; due: string | null };
@@ -71,9 +77,18 @@ export const DEFAULT_SETTINGS: Settings = {
       boardName: "",
       listId: "",
       listName: "",
+      templateId: "",
+      templateName: "",
       connected: false,
     },
-    linear: { apiKey: "", teamId: "", teamName: "", connected: false },
+    linear: {
+      apiKey: "",
+      teamId: "",
+      teamName: "",
+      templateId: "",
+      templateName: "",
+      connected: false,
+    },
   },
 };
 

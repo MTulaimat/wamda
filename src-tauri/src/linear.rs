@@ -9,7 +9,7 @@
 use serde::de::DeserializeOwned;
 use serde::{Deserialize, Serialize};
 
-use crate::provider::{Provider, TaskInput, TaskRef, TaskSummary};
+use crate::provider::{Provider, TaskInput, TaskRef, TaskSummary, Template};
 use crate::settings::Settings;
 
 const ENDPOINT: &str = "https://api.linear.app/graphql";
@@ -217,6 +217,15 @@ impl Provider for LinearProvider {
                 due: n.due,
             })
             .collect())
+    }
+
+    async fn list_templates(&self) -> Result<Vec<Template>, String> {
+        // Linear has issue templates, but `issueCreate` exposes no server-side
+        // `templateId` — applying one means reading the template's `templateData`
+        // JSON and mapping its fields here. Until that's built (and verified
+        // against a real key), expose none so the /template UI degrades
+        // gracefully: Linear shows an empty template list rather than erroring.
+        Ok(Vec::new())
     }
 }
 

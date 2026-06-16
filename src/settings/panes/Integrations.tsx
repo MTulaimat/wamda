@@ -3,7 +3,12 @@ import { openUrl } from "@tauri-apps/plugin-opener";
 import { Check, ChevronDown, ExternalLink, Link2 } from "lucide-react";
 import { T } from "../../tokens";
 import { Field, inputStyle } from "../widgets";
-import { linearGetTeams, trelloGetBoards, trelloGetLists } from "../../ipc";
+import {
+  linearGetTeams,
+  trelloGetBoards,
+  trelloGetLists,
+  trelloGetTemplates,
+} from "../../ipc";
 import {
   type Board,
   type List,
@@ -12,6 +17,7 @@ import {
   type ProviderId,
   type Settings,
   type Team,
+  type Template,
 } from "../../types";
 
 const POWERUP_URL = "https://trello.com/power-ups/admin";
@@ -200,6 +206,7 @@ function TrelloCard({ settings, update, updateProvider }: Props) {
   const [token, setToken] = useState(cfg.token);
   const [boards, setBoards] = useState<Board[]>([]);
   const [lists, setLists] = useState<List[]>([]);
+  const [templates, setTemplates] = useState<Template[]>([]);
   const [testing, setTesting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const didPreload = useRef(false);
@@ -212,6 +219,9 @@ function TrelloCard({ settings, update, updateProvider }: Props) {
         .then((b) => {
           setBoards(b);
           if (cfg.boardId) {
+            void trelloGetTemplates(cfg.key, cfg.token, cfg.boardId)
+              .then(setTemplates)
+              .catch(() => {});
             return trelloGetLists(cfg.key, cfg.token, cfg.boardId).then(setLists);
           }
         })
@@ -243,10 +253,18 @@ function TrelloCard({ settings, update, updateProvider }: Props) {
       boardName: name,
       listId: "",
       listName: "",
+      templateId: "",
+      templateName: "",
     });
     setLists([]);
+    setTemplates([]);
     try {
-      setLists(await trelloGetLists(key || cfg.key, token || cfg.token, id));
+      const [ls, ts] = await Promise.all([
+        trelloGetLists(key || cfg.key, token || cfg.token, id),
+        trelloGetTemplates(key || cfg.key, token || cfg.token, id),
+      ]);
+      setLists(ls);
+      setTemplates(ts);
     } catch (e) {
       setError(String(e));
     }
@@ -255,6 +273,11 @@ function TrelloCard({ settings, update, updateProvider }: Props) {
   const onList = (id: string) => {
     const name = lists.find((l) => l.id === id)?.name ?? "";
     updateProvider("trello", { listId: id, listName: name });
+  };
+
+  const onTemplate = (id: string) => {
+    const name = templates.find((t) => t.id === id)?.name ?? "";
+    updateProvider("trello", { templateId: id, templateName: name });
   };
 
   return (
@@ -348,6 +371,32 @@ function TrelloCard({ settings, update, updateProvider }: Props) {
           <ChevronDown size={15} color={T.faint} />
         </div>
       </Field>
+      <Field label="Default template">
+        <div className="field-wrap" style={selectWrap(cfg.connected && !!cfg.boardId)}>
+          <select
+            value={cfg.templateId}
+            onChange={(e) => onTemplate(e.target.value)}
+            style={selectStyle}
+          >
+            <option value="" style={optBg}>
+              None
+            </option>
+            {templates.map((t) => (
+              <option key={t.id} value={t.id} style={optBg}>
+                {t.name}
+              </option>
+            ))}
+          </select>
+          <ChevronDown size={15} color={T.faint} />
+        </div>
+      </Field>
+      <p style={{ margin: "-6px 0 0", fontSize: 11.5, color: T.faint, lineHeight: 1.5 }}>
+        New Trello captures start from this template. Override any time with{" "}
+        <span className="mono" style={{ color: "var(--accent)" }}>
+          /template
+        </span>
+        .
+      </p>
     </ProviderCard>
   );
 }

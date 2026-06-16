@@ -11,6 +11,7 @@ import type {
   TaskRef,
   TaskSummary,
   Team,
+  Template,
 } from "./types";
 
 export const getSettings = () => invoke<Settings>("get_settings");
@@ -32,6 +33,9 @@ export const trelloCreateCard = (
   name: string,
 ) => invoke<Card>("trello_create_card", { key, token, listId, name });
 
+export const trelloGetTemplates = (key: string, token: string, boardId: string) =>
+  invoke<Template[]>("trello_get_templates", { key, token, boardId });
+
 /* ---- Linear (settings picker) ---- */
 export const linearGetTeams = (apiKey: string) =>
   invoke<Team[]>("linear_get_teams", { apiKey });
@@ -42,6 +46,9 @@ export const providerCreateTask = (providerId: string, input: TaskInput) =>
 
 export const providerListDue = (providerId: string, limit: number) =>
   invoke<TaskSummary[]>("provider_list_due", { providerId, limit });
+
+export const providerListTemplates = (providerId: string) =>
+  invoke<Template[]>("provider_list_templates", { providerId });
 
 export const providerStatus = (providerId: string) =>
   invoke<ProviderStatus>("provider_status", { providerId });

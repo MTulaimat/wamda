@@ -7,8 +7,10 @@ import {
   ChevronDown,
   CornerDownLeft,
   Layout,
+  LayoutTemplate,
   Link2,
   Settings as SettingsIcon,
+  X,
   Zap,
 } from "lucide-react";
 import { T } from "../tokens";
@@ -19,6 +21,7 @@ import {
   openSettings,
   providerCreateTask,
   providerListDue,
+  providerListTemplates,
   reminderSchedule,
   timerStart,
 } from "../ipc";
@@ -41,6 +44,7 @@ import {
   type ProviderId,
   type ProviderStatus,
   type TaskSummary,
+  type Template,
 } from "../types";
 
 const delay = (ms: number) => new Promise((r) => setTimeout(r, ms));
@@ -96,9 +100,17 @@ export function Capture() {
   const [supResults, setSupResults] = useState<SupResults | null>(null);
   const [pickerOpen, setPickerOpen] = useState(false);
   const [dropdownIdx, setDropdownIdx] = useState(0);
+  // The template the next capture is based on (from a provider default or a
+  // `/template` pick), plus the lazily-fetched list for the picker.
+  const [template, setTemplate] = useState<Template | null>(null);
+  const [templates, setTemplates] = useState<Template[]>([]);
+  const [templatesLoading, setTemplatesLoading] = useState(false);
+  const [templatesErr, setTemplatesErr] = useState<string | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   const descRef = useRef<HTMLTextAreaElement>(null);
   const openDatePickerRef = useRef<(() => void) | null>(null);
+  // Which provider's templates are currently cached (null = not loaded).
+  const templatesProvider = useRef<string | null>(null);
   const controls = useAnimationControls();
 
   const registry = useMemo(
@@ -141,6 +153,18 @@ export function Capture() {
     ? registry.find((c) => c.token === parsed.token)
     : undefined;
 
+  // `/template …` argument zone → show the template picker instead of commands.
+  const inTemplateArgs =
+    isCommand && parsed.token === "template" && afterSlash.includes(" ");
+  const templateQuery = parsed.rest.trim().toLowerCase();
+  const templateMatches = templates.filter((t) =>
+    t.name.toLowerCase().includes(templateQuery),
+  );
+  const showTemplateDropdown = !sending && !toast && inTemplateArgs;
+  // The active provider's configured default template (empty id = none).
+  const defTplId = settings.providers[dp].templateId;
+  const defTplName = settings.providers[dp].templateName;
+
   // Start hidden; the entrance plays on the first (and every) show event.
   useEffect(() => {
     controls.set(ENTRANCE_FROM);
@@ -156,6 +180,36 @@ export function Capture() {
     setDropdownIdx(0);
   }, [text]);
 
+  // Switching providers invalidates the cached template list.
+  useEffect(() => {
+    templatesProvider.current = null;
+    setTemplates([]);
+  }, [dp]);
+
+  // The effective template starts from the provider's configured default. A
+  // `/template` pick overrides this (it doesn't touch the default), and ✕ clears
+  // it for the current capture. Re-runs on open (fresh settings) and dp change.
+  useEffect(() => {
+    setTemplate(defTplId ? { id: defTplId, name: defTplName || "Template" } : null);
+  }, [dp, defTplId, defTplName]);
+
+  // Lazily fetch templates the first time the user enters `/template `.
+  useEffect(() => {
+    if (!inTemplateArgs || !configured) return;
+    if (templatesProvider.current === dp) return;
+    templatesProvider.current = dp;
+    setTemplatesErr(null);
+    setTemplatesLoading(true);
+    providerListTemplates(dp)
+      .then(setTemplates)
+      .catch((e) => {
+        setTemplates([]);
+        setTemplatesErr(String(e));
+        templatesProvider.current = null; // allow a retry
+      })
+      .finally(() => setTemplatesLoading(false));
+  }, [inTemplateArgs, configured, dp]);
+
   // React to Rust show/hide lifecycle events.
   useEffect(() => {
     const resetAll = () => {
@@ -168,6 +222,10 @@ export function Capture() {
       setExpanded(false);
       setDescription("");
       setDue(null);
+      setTemplate(null);
+      setTemplatesErr(null);
+      setTemplates([]);
+      templatesProvider.current = null;
     };
     const unlistenOpened = listen<OpenedPayload>("capture:opened", (e) => {
       resetAll();
@@ -177,6 +235,16 @@ export function Capture() {
         .then((s) => {
           setSettings(s);
           applyAccent(s.accent);
+          // Seed the effective template from the active provider's default. Must
+          // happen here (not only via the defTpl effect): on a reopen the saved
+          // id is unchanged, so that effect won't re-fire after resetAll cleared
+          // the chip — which would silently drop the default on every capture.
+          const cfg = s.providers[s.defaultProvider];
+          setTemplate(
+            cfg.templateId
+              ? { id: cfg.templateId, name: cfg.templateName || "Template" }
+              : null,
+          );
         })
         .catch(() => {});
       void listProviders().then(setProviders).catch(() => {});
@@ -285,8 +353,14 @@ export function Capture() {
           title: value,
           description: description.trim() || null,
           due,
+          templateId: template?.id ?? null,
         });
-        await finishWithToast(`Added to ${destinationLabel}`, keepOpen);
+        await finishWithToast(
+          template
+            ? `Added to ${destinationLabel} · from ${template.name}`
+            : `Added to ${destinationLabel}`,
+          keepOpen,
+        );
       } catch (e) {
         setSending(false); // restores the input with text intact
         setError(String(e));
@@ -321,6 +395,15 @@ export function Capture() {
           setText("");
           setSupResults({ providerId, items });
           break;
+        }
+        case "template": {
+          // Reached only via the submit button while still picking; select the
+          // highlighted template (Enter in the picker is handled in keydown).
+          const hi =
+            templateMatches[Math.min(dropdownIdx, templateMatches.length - 1)];
+          if (hi) pickTemplate(hi);
+          else triggerShake();
+          return;
         }
         default: {
           // /trello or /linear (a provider route command).
@@ -371,6 +454,19 @@ export function Capture() {
     inputRef.current?.focus();
   };
 
+  // Lock in a template and return to normal capture (text becomes the title).
+  const pickTemplate = (t: Template) => {
+    setTemplate({ id: t.id, name: t.name });
+    setText("");
+    setDropdownIdx(0);
+    inputRef.current?.focus();
+  };
+
+  const removeTemplate = () => {
+    setTemplate(null);
+    inputRef.current?.focus();
+  };
+
   const onChangeText = (v: string) => {
     setText(v);
     if (error) setError(null);
@@ -383,6 +479,32 @@ export function Capture() {
   };
 
   const onTitleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    // Backspace on an empty title clears the selected template chip.
+    if (e.key === "Backspace" && template && text === "") {
+      e.preventDefault();
+      removeTemplate();
+      return;
+    }
+    // Template picker (`/template `) — arrow to move, Enter/Tab to select.
+    if (showTemplateDropdown) {
+      const list = templateMatches;
+      if (e.key === "ArrowDown") {
+        e.preventDefault();
+        if (list.length) setDropdownIdx((i) => (i + 1) % list.length);
+        return;
+      }
+      if (e.key === "ArrowUp") {
+        e.preventDefault();
+        if (list.length) setDropdownIdx((i) => (i - 1 + list.length) % list.length);
+        return;
+      }
+      if (e.key === "Enter" || e.key === "Tab") {
+        e.preventDefault();
+        const hi = list[Math.min(dropdownIdx, list.length - 1)];
+        if (hi) pickTemplate(hi);
+        return;
+      }
+    }
     if (showDropdown) {
       const hi = matches[Math.min(dropdownIdx, matches.length - 1)];
       if (e.key === "ArrowDown") {
@@ -403,7 +525,8 @@ export function Capture() {
       if (e.key === "Enter") {
         e.preventDefault();
         // A fully-typed command runs; a partial match completes first.
-        if (hi && hi.token === parsed.token) void run();
+        // `/template` always completes into its arg zone (never "runs").
+        if (hi && hi.token === parsed.token && hi.token !== "template") void run();
         else completeWith(hi);
         return;
       }
@@ -442,6 +565,56 @@ export function Capture() {
       inputRef.current?.focus();
     }
   };
+
+  const templateChip = template ? (
+    <span
+      style={{
+        display: "inline-flex",
+        alignItems: "center",
+        gap: 6,
+        flexShrink: 0,
+        maxWidth: 220,
+        padding: "4px 5px 4px 9px",
+        borderRadius: 8,
+        background: "rgba(110,123,255,0.14)",
+        border: "1px solid var(--accent)",
+        color: "var(--accent)",
+        fontSize: 12.5,
+        fontWeight: 600,
+      }}
+      title={`Based on “${template.name}”`}
+    >
+      <LayoutTemplate size={12} style={{ flexShrink: 0 }} />
+      <span
+        style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}
+      >
+        {template.name}
+      </span>
+      <button
+        className="icon-btn"
+        onMouseDown={(e) => {
+          e.preventDefault();
+          removeTemplate();
+        }}
+        title="Remove template"
+        style={{
+          display: "grid",
+          placeItems: "center",
+          width: 16,
+          height: 16,
+          padding: 0,
+          borderRadius: 5,
+          border: "none",
+          background: "transparent",
+          color: "var(--accent)",
+          cursor: "pointer",
+          flexShrink: 0,
+        }}
+      >
+        <X size={12} />
+      </button>
+    </span>
+  ) : undefined;
 
   return (
     <div
@@ -493,7 +666,14 @@ export function Capture() {
             disabled={sending}
             onChange={onChangeText}
             onKeyDown={onTitleKeyDown}
-            placeholder={isCommand ? "Type a command…" : "What needs doing?"}
+            placeholder={
+              isCommand
+                ? "Type a command…"
+                : template
+                  ? `Name this ${dp === "linear" ? "issue" : "card"}…`
+                  : "What needs doing?"
+            }
+            leading={!isCommand ? templateChip : undefined}
             showExpandToggle={!isCommand}
             expanded={expanded && !isCommand}
             onToggleExpand={() => setExpanded((v) => !v)}
@@ -775,6 +955,142 @@ export function Capture() {
                   </div>
                 );
               })}
+            </motion.div>
+          )}
+        </AnimatePresence>
+
+        {/* template picker (shown after `/template `) */}
+        <AnimatePresence>
+          {showTemplateDropdown && (
+            <motion.div
+              initial={{ opacity: 0, y: 6 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: 6 }}
+              transition={{ duration: 0.18, ease: [0.16, 1, 0.3, 1] }}
+              style={{
+                position: "relative",
+                zIndex: 1,
+                background: "#121420",
+                border: `1px solid ${T.border}`,
+                borderRadius: 14,
+                overflowX: "hidden",
+                overflowY: "auto",
+                maxHeight: 260,
+                boxShadow: "0 24px 70px -12px rgba(0,0,0,0.6)",
+              }}
+            >
+              <div
+                style={{
+                  padding: "10px 16px",
+                  borderBottom: `1px solid ${T.hairline}`,
+                  fontSize: 11,
+                  color: T.faint,
+                  fontWeight: 600,
+                  letterSpacing: "0.04em",
+                  textTransform: "uppercase",
+                }}
+              >
+                {PROVIDER_LABELS[dp]} · Templates
+              </div>
+              {!configured ? (
+                <button
+                  className="row"
+                  onMouseDown={(e) => {
+                    e.preventDefault();
+                    void openSettings();
+                  }}
+                  style={{
+                    display: "flex",
+                    width: "100%",
+                    alignItems: "center",
+                    gap: 10,
+                    padding: "12px 16px",
+                    background: "transparent",
+                    border: "none",
+                    textAlign: "left",
+                    cursor: "pointer",
+                  }}
+                >
+                  <Link2 size={14} color={T.faint} />
+                  <span style={{ fontSize: 13, color: T.sub }}>
+                    Connect {PROVIDER_LABELS[dp]} in Settings
+                  </span>
+                </button>
+              ) : templatesLoading ? (
+                <div
+                  style={{
+                    padding: "14px 16px",
+                    display: "flex",
+                    alignItems: "center",
+                    gap: 10,
+                  }}
+                >
+                  <span
+                    style={{
+                      width: 14,
+                      height: 14,
+                      border: `2px solid ${T.faint}`,
+                      borderTopColor: T.text,
+                      borderRadius: "50%",
+                      animation: "spin .7s linear infinite",
+                    }}
+                  />
+                  <span style={{ fontSize: 13, color: T.sub }}>Loading templates…</span>
+                </div>
+              ) : templateMatches.length === 0 ? (
+                <div
+                  style={{ padding: "14px 16px", fontSize: 13, color: T.sub, lineHeight: 1.5 }}
+                >
+                  {templatesErr
+                    ? templatesErr
+                    : templates.length === 0
+                      ? `No templates on this ${dp === "linear" ? "team" : "board"} — create one in ${PROVIDER_LABELS[dp]}.`
+                      : `No template matches “${parsed.rest.trim()}”.`}
+                </div>
+              ) : (
+                templateMatches.map((t, i) => {
+                  const active =
+                    i === Math.min(dropdownIdx, templateMatches.length - 1);
+                  return (
+                    <div
+                      key={t.id}
+                      className="row"
+                      onMouseDown={(e) => {
+                        e.preventDefault();
+                        pickTemplate(t);
+                      }}
+                      onMouseEnter={() => setDropdownIdx(i)}
+                      style={{
+                        display: "flex",
+                        alignItems: "center",
+                        gap: 11,
+                        padding: "10px 16px",
+                        cursor: "pointer",
+                        background: active ? "rgba(255,255,255,0.06)" : "transparent",
+                        borderTop: i ? `1px solid ${T.hairline}` : "none",
+                      }}
+                    >
+                      <LayoutTemplate
+                        size={14}
+                        color="var(--accent)"
+                        style={{ flexShrink: 0 }}
+                      />
+                      <span
+                        style={{
+                          fontSize: 13.5,
+                          color: T.text,
+                          fontWeight: 500,
+                          overflow: "hidden",
+                          textOverflow: "ellipsis",
+                          whiteSpace: "nowrap",
+                        }}
+                      >
+                        {t.name}
+                      </span>
+                    </div>
+                  );
+                })
+              )}
             </motion.div>
           )}
         </AnimatePresence>

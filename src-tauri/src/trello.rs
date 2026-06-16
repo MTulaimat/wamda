@@ -1,6 +1,6 @@
 use serde::{Deserialize, Serialize};
 
-use crate::provider::{Provider, TaskInput, TaskRef, TaskSummary};
+use crate::provider::{Provider, TaskInput, TaskRef, TaskSummary, Template};
 use crate::settings::Settings;
 
 const BASE: &str = "https://api.trello.com/1";
@@ -84,6 +84,51 @@ pub async fn get_lists(key: &str, token: &str, board_id: &str) -> Result<Vec<Lis
     resp.json::<Vec<List>>().await.map_err(|_| "Unexpected response from Trello".into())
 }
 
+/// Card templates on a board are ordinary cards flagged `isTemplate` — there's no
+/// dedicated endpoint. Fetch the board's cards (minimal fields) and keep the live
+/// (non-archived) templates.
+pub async fn get_templates(
+    key: &str,
+    token: &str,
+    board_id: &str,
+) -> Result<Vec<Template>, String> {
+    if board_id.is_empty() {
+        return Ok(Vec::new());
+    }
+    let resp = client()
+        .get(format!("{BASE}/boards/{board_id}/cards"))
+        .query(&[
+            ("key", key),
+            ("token", token),
+            ("filter", "all"),
+            ("fields", "name,isTemplate,closed"),
+        ])
+        .send()
+        .await
+        .map_err(net_err)?;
+    if !resp.status().is_success() {
+        return Err(status_err(resp.status()));
+    }
+    #[derive(Deserialize)]
+    struct Row {
+        id: String,
+        name: String,
+        #[serde(rename = "isTemplate", default)]
+        is_template: bool,
+        #[serde(default)]
+        closed: bool,
+    }
+    let rows = resp
+        .json::<Vec<Row>>()
+        .await
+        .map_err(|_| "Unexpected response from Trello".to_string())?;
+    Ok(rows
+        .into_iter()
+        .filter(|r| r.is_template && !r.closed)
+        .map(|r| Template { id: r.id, name: r.name })
+        .collect())
+}
+
 pub async fn create_card(key: &str, token: &str, list_id: &str, name: &str) -> Result<Card, String> {
     // reqwest `.query` url-encodes the card name for us.
     let resp = client()
@@ -106,6 +151,7 @@ pub async fn create_card(key: &str, token: &str, list_id: &str, name: &str) -> R
 pub struct TrelloProvider {
     key: String,
     token: String,
+    board_id: String,
     list_id: String,
 }
 
@@ -114,6 +160,7 @@ impl TrelloProvider {
         Self {
             key: s.providers.trello.key.clone(),
             token: s.providers.trello.token.clone(),
+            board_id: s.providers.trello.board_id.clone(),
             list_id: s.providers.trello.list_id.clone(),
         }
     }
@@ -146,6 +193,14 @@ impl Provider for TrelloProvider {
         if let Some(due) = input.due {
             // Trello wants an ISO datetime; pin to 17:00 UTC so the date sticks.
             q.push(("due", format!("{due}T17:00:00.000Z")));
+        }
+        if let Some(tid) = input.template_id {
+            if !tid.is_empty() {
+                // Create from a card template: copy its checklists/labels/etc.
+                // The explicit name (and any desc/due above) still override.
+                q.push(("idCardSource", tid));
+                q.push(("keepFromSource", "all".into()));
+            }
         }
         let resp = client()
             .post(format!("{BASE}/cards"))
@@ -199,5 +254,9 @@ impl Provider for TrelloProvider {
                 due: r.due,
             })
             .collect())
+    }
+
+    async fn list_templates(&self) -> Result<Vec<Template>, String> {
+        get_templates(&self.key, &self.token, &self.board_id).await
     }
 }
