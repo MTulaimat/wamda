@@ -76,6 +76,9 @@ export const reminderRemove = (id: string) =>
 
 export const reminderList = () => invoke<Reminder[]>("reminder_list");
 
+export const reminderRestore = (fireAt: string, message: string) =>
+  invoke<Reminder>("reminder_restore", { fireAt, message });
+
 /* ---- Local notes ---- */
 export const noteCreate = (text: string) =>
   invoke<Note>("note_create", { text });

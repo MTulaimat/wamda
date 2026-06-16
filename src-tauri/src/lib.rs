@@ -108,6 +108,7 @@ pub fn run() {
             commands::reminder_schedule,
             commands::reminder_remove,
             commands::reminder_list,
+            commands::reminder_restore,
             commands::note_create,
             commands::note_list,
             commands::note_remove,

@@ -29,6 +29,7 @@ import {
   noteRemove,
   reminderList,
   reminderRemove,
+  reminderRestore,
   reminderSchedule,
   timerStart,
 } from "../ipc";
@@ -64,6 +65,24 @@ type SupResults = { providerId: string; items: TaskSummary[] };
 type LocalList =
   | { kind: "notes"; items: Note[] }
   | { kind: "reminders"; items: Reminder[] };
+// The last action /undo can reverse. Most recent wins; consumed after one undo.
+type UndoAction =
+  // Undo a task create: delete the card/issue and bring it back to the bar.
+  | {
+      kind: "task";
+      providerId: ProviderId;
+      taskId: string;
+      title: string;
+      description: string;
+      due: string | null;
+    }
+  // Undo a note/reminder create: remove the just-made item and pull its text back
+  // into the bar to edit & re-add.
+  | { kind: "removeNote"; id: string; text: string }
+  | { kind: "removeReminder"; id: string; text: string }
+  // Undo a note/reminder delete: re-create it.
+  | { kind: "restoreNote"; text: string }
+  | { kind: "restoreReminder"; fireAt: string; message: string };
 
 // Shown until list_providers() resolves, so /trello · /linear appear immediately.
 const DEFAULT_PROVIDERS: ProviderStatus[] = [
@@ -187,15 +206,9 @@ export function Capture() {
   const inputRef = useRef<HTMLInputElement>(null);
   const descRef = useRef<HTMLTextAreaElement>(null);
   const openDatePickerRef = useRef<(() => void) | null>(null);
-  // The last task we created, for `/undo`. A ref (not state) so it survives the
+  // The last action `/undo` can reverse. A ref (not state) so it survives the
   // capture window hiding/reopening — which runs resetAll() and clears form state.
-  const lastSubmitRef = useRef<{
-    providerId: ProviderId;
-    taskId: string;
-    title: string;
-    description: string;
-    due: string | null;
-  } | null>(null);
+  const lastUndoableRef = useRef<UndoAction | null>(null);
   // Which provider's templates are currently cached (null = not loaded).
   const templatesProvider = useRef<string | null>(null);
   const controls = useAnimationControls();
@@ -449,7 +462,8 @@ export function Capture() {
           due,
           templateId: template?.id ?? null,
         });
-        lastSubmitRef.current = {
+        lastUndoableRef.current = {
+          kind: "task",
           providerId: dp,
           taskId: created.id,
           title: value,
@@ -477,6 +491,7 @@ export function Capture() {
           const { phrase, message } = splitRemind(p.rest);
           setSending(true);
           const r = await reminderSchedule(phrase, message);
+          lastUndoableRef.current = { kind: "removeReminder", id: r.id, text: r.message };
           await finishWithToast(`Reminder set for ${formatWhen(r.fireAt)}`);
           break;
         }
@@ -504,7 +519,8 @@ export function Capture() {
             return;
           }
           setSending(true);
-          await noteCreate(body);
+          const n = await noteCreate(body);
+          lastUndoableRef.current = { kind: "removeNote", id: n.id, text: n.text };
           await finishWithToast("Note saved");
           break;
         }
@@ -536,32 +552,74 @@ export function Capture() {
           return;
         }
         case "undo": {
-          const last = lastSubmitRef.current;
+          const last = lastUndoableRef.current;
           if (!last) {
             setError("Nothing to undo yet");
             triggerShake();
             return;
           }
+          if (last.kind === "task") {
+            setSending(true);
+            try {
+              await providerDeleteTask(last.providerId, last.taskId);
+            } catch (e) {
+              setSending(false);
+              setError(String(e));
+              triggerShake();
+              return;
+            }
+            lastUndoableRef.current = null; // consumed — can't undo the same task twice
+            setSending(false);
+            // Bring the deleted task back into the bar so it can be edited & re-added.
+            if (last.providerId !== dp) update({ defaultProvider: last.providerId });
+            setDescription(last.description);
+            setDue(last.due);
+            setExpanded(!!(last.description || last.due));
+            setText(last.title);
+            setToast(`Removed from ${PROVIDER_LABELS[last.providerId]} — edit & re-add`);
+            setTimeout(() => setToast(null), 1700);
+            setTimeout(() => inputRef.current?.focus(), 0);
+            return;
+          }
+          // Undo of a note/reminder *create*: remove it, then pull its text back
+          // into the bar to edit & re-add (mirrors task-undo).
+          if (last.kind === "removeNote" || last.kind === "removeReminder") {
+            setSending(true);
+            try {
+              if (last.kind === "removeNote") await noteRemove(last.id);
+              else await reminderRemove(last.id);
+            } catch (e) {
+              setSending(false);
+              setError(String(e));
+              triggerShake();
+              return;
+            }
+            lastUndoableRef.current = null;
+            setSending(false);
+            setText(last.text);
+            setToast(
+              `${last.kind === "removeNote" ? "Note" : "Reminder"} removed — edit & re-add`,
+            );
+            setTimeout(() => setToast(null), 1700);
+            setTimeout(() => inputRef.current?.focus(), 0);
+            return;
+          }
+
+          // Undo of a note/reminder *delete*: re-create it.
           setSending(true);
           try {
-            await providerDeleteTask(last.providerId, last.taskId);
+            if (last.kind === "restoreNote") await noteCreate(last.text);
+            else await reminderRestore(last.fireAt, last.message);
           } catch (e) {
             setSending(false);
             setError(String(e));
             triggerShake();
             return;
           }
-          lastSubmitRef.current = null; // consumed — can't undo the same task twice
-          setSending(false);
-          // Bring the deleted task back into the bar so it can be edited & re-added.
-          if (last.providerId !== dp) update({ defaultProvider: last.providerId });
-          setDescription(last.description);
-          setDue(last.due);
-          setExpanded(!!(last.description || last.due));
-          setText(last.title);
-          setToast(`Removed from ${PROVIDER_LABELS[last.providerId]} — edit & re-add`);
-          setTimeout(() => setToast(null), 1700);
-          setTimeout(() => inputRef.current?.focus(), 0);
+          lastUndoableRef.current = null;
+          await finishWithToast(
+            last.kind === "restoreNote" ? "Note restored" : "Reminder restored",
+          );
           return;
         }
         default: {
@@ -596,7 +654,8 @@ export function Capture() {
             description: description.trim() || null,
             due,
           });
-          lastSubmitRef.current = {
+          lastUndoableRef.current = {
+            kind: "task",
             providerId: pid,
             taskId: created.id,
             title: p.rest.trim(),
@@ -637,14 +696,24 @@ export function Capture() {
   // from the visible list (keeps the panel open so you can clear several).
   const removeLocalItem = async (id: string) => {
     if (!localList) return;
+    // Stash the item before deleting so `/undo` can bring it back.
+    let undo: UndoAction | null = null;
     try {
-      if (localList.kind === "notes") await noteRemove(id);
-      else await reminderRemove(id);
+      if (localList.kind === "notes") {
+        const n = localList.items.find((x) => x.id === id);
+        if (n) undo = { kind: "restoreNote", text: n.text };
+        await noteRemove(id);
+      } else {
+        const r = localList.items.find((x) => x.id === id);
+        if (r) undo = { kind: "restoreReminder", fireAt: r.fireAt, message: r.message };
+        await reminderRemove(id);
+      }
     } catch (e) {
       setError(String(e));
       triggerShake();
       return;
     }
+    if (undo) lastUndoableRef.current = undo;
     setLocalList((cur) => {
       if (!cur) return null;
       return cur.kind === "notes"

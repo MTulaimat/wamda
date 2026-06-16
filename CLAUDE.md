@@ -97,3 +97,16 @@ New Tauri APIs must be allowlisted in
   isolated with a `trailing` slot so a future mic/dictate button can be added without
   touching capture logic. Voice dictation is intentionally out of scope; no audio
   code exists by design.
+- **Slash commands** are defined in [src/capture/commands.ts](src/capture/commands.ts)
+  (`buildRegistry`) and handled in `run()` in
+  [src/capture/Capture.tsx](src/capture/Capture.tsx). Whenever you add, remove, or
+  change a slash command **or a keyboard shortcut**, ALWAYS update the hand-maintained
+  reference lists in the Shortcuts settings pane
+  ([src/settings/panes/Shortcuts.tsx](src/settings/panes/Shortcuts.tsx)) — they are not
+  generated and drift silently otherwise.
+- **App version**: the About pane ([src/settings/panes/About.tsx](src/settings/panes/About.tsx))
+  reads it at runtime via `getVersion()` from
+  [src-tauri/tauri.conf.json](src-tauri/tauri.conf.json) — never hardcode it. On a
+  release bump, update the version in `tauri.conf.json` **and**
+  [src-tauri/Cargo.toml](src-tauri/Cargo.toml) (keep the two in sync); the About pane
+  then shows it automatically.

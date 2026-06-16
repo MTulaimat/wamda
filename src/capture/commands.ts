@@ -50,7 +50,7 @@ export function buildRegistry(providers: ProviderStatus[]): CommandSpec[] {
     { id: "note", token: "note", title: "Save a note", hint: "jot something — stays local, not a task" },
     { id: "notes", token: "notes", title: "Your notes", hint: "list & delete saved notes" },
     { id: "reminders", token: "reminders", title: "Your reminders", hint: "list & delete reminders" },
-    { id: "undo", token: "undo", title: "Undo last", hint: "delete the last task & bring it back to edit" },
+    { id: "undo", token: "undo", title: "Undo last", hint: "reverse your last action — task, note, or reminder" },
   ];
   const routes = providers.map<CommandSpec>((p) => ({
     id: "provider",

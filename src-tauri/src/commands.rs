@@ -224,6 +224,17 @@ pub fn reminder_list<R: Runtime>(app: AppHandle<R>) -> Vec<reminders::Reminder> 
     reminders::list(&app)
 }
 
+/// Re-add a reminder by its absolute time — powers `/undo` after a delete.
+/// (`reminder_schedule` only takes a natural-language phrase, not a timestamp.)
+#[tauri::command]
+pub fn reminder_restore<R: Runtime>(
+    app: AppHandle<R>,
+    fire_at: String,
+    message: String,
+) -> Result<reminders::Reminder, String> {
+    reminders::add(&app, fire_at, message)
+}
+
 // ---- Local notes ----
 
 #[tauri::command]

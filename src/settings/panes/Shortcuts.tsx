@@ -23,6 +23,21 @@ const CAPTURE_SHORTCUTS: { label: string; combos: string[][] }[] = [
   { label: "Dismiss · back out", combos: [["Esc"]] },
 ];
 
+// Slash commands, shown for reference. Keep in sync with the registry in
+// src/capture/commands.ts — this list is hand-maintained, not generated.
+const SLASH_COMMANDS: { cmd: string; desc: string }[] = [
+  { cmd: "/trello", desc: "Send this capture to Trello (or make it the default)" },
+  { cmd: "/linear", desc: "Send this capture to Linear (or make it the default)" },
+  { cmd: "/template", desc: "Start a Trello card from a saved template" },
+  { cmd: "/note", desc: "Save a quick note — local, not a task" },
+  { cmd: "/notes", desc: "List your notes, with a delete button on each" },
+  { cmd: "/remind", desc: "Set a reminder — “in 10m to ping Sam”" },
+  { cmd: "/reminders", desc: "List your reminders, with a delete button on each" },
+  { cmd: "/timer", desc: "Start a countdown — “25m focus”" },
+  { cmd: "/sup", desc: "Glance at what’s due soon" },
+  { cmd: "/undo", desc: "Reverse your last action — task, note, or reminder" },
+];
+
 function Combo({ keys }: { keys: string[] }) {
   return (
     <span style={{ display: "inline-flex", alignItems: "center", gap: 4 }}>
@@ -153,6 +168,48 @@ export function Shortcuts({
         Rebinding individual shortcuts isn’t supported yet — only the capture hotkey
         above is configurable.
       </p>
+
+      <div style={{ height: 1, background: T.hairline, margin: "20px 0 18px" }} />
+
+      <div style={{ fontSize: 13.5, color: T.text, fontWeight: 600, marginBottom: 3 }}>
+        Slash commands
+      </div>
+      <p style={{ margin: "0 0 12px", fontSize: 12, color: T.faint, lineHeight: 1.5 }}>
+        Type{" "}
+        <span className="mono" style={{ color: "var(--accent)" }}>
+          /
+        </span>{" "}
+        in the bar to open the command menu.
+      </p>
+      <div style={{ display: "flex", flexDirection: "column" }}>
+        {SLASH_COMMANDS.map((c) => (
+          <div
+            key={c.cmd}
+            className="row"
+            style={{
+              display: "flex",
+              alignItems: "center",
+              gap: 12,
+              padding: "7px 10px",
+              margin: "0 -10px",
+              borderRadius: 8,
+            }}
+          >
+            <span
+              className="mono"
+              style={{
+                fontSize: 12.5,
+                color: "var(--accent)",
+                minWidth: 92,
+                flexShrink: 0,
+              }}
+            >
+              {c.cmd}
+            </span>
+            <span style={{ fontSize: 13, color: T.sub }}>{c.desc}</span>
+          </div>
+        ))}
+      </div>
     </>
   );
 }
