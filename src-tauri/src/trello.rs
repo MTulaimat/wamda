@@ -85,8 +85,12 @@ pub async fn get_lists(key: &str, token: &str, board_id: &str) -> Result<Vec<Lis
 }
 
 /// Card templates on a board are ordinary cards flagged `isTemplate` — there's no
-/// dedicated endpoint. Fetch the board's cards (minimal fields) and keep the live
-/// (non-archived) templates.
+/// dedicated endpoint, so we list the board's cards (minimal fields) and keep the
+/// ones flagged as templates, **including archived ones**. Trello's own "create
+/// from template" picker shows archived template cards and builds from them (via
+/// `idCardSource`), and people routinely archive template cards to keep a board
+/// uncluttered — so excluding archived ones would drop legitimate templates.
+/// (`filter=all` is what pulls archived cards into the response.)
 pub async fn get_templates(
     key: &str,
     token: &str,
@@ -101,7 +105,7 @@ pub async fn get_templates(
             ("key", key),
             ("token", token),
             ("filter", "all"),
-            ("fields", "name,isTemplate,closed"),
+            ("fields", "name,isTemplate"),
         ])
         .send()
         .await
@@ -115,8 +119,6 @@ pub async fn get_templates(
         name: String,
         #[serde(rename = "isTemplate", default)]
         is_template: bool,
-        #[serde(default)]
-        closed: bool,
     }
     let rows = resp
         .json::<Vec<Row>>()
@@ -124,7 +126,7 @@ pub async fn get_templates(
         .map_err(|_| "Unexpected response from Trello".to_string())?;
     Ok(rows
         .into_iter()
-        .filter(|r| r.is_template && !r.closed)
+        .filter(|r| r.is_template)
         .map(|r| Template { id: r.id, name: r.name })
         .collect())
 }
