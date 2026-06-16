@@ -6,6 +6,14 @@ Trello list. Lives in the system tray — no window on launch.
 
 Built with **Tauri 2** (Rust backend) + **React 18 + Vite + TypeScript** frontend.
 
+## Download
+
+**[⬇ Download Wamda for Windows](https://github.com/MTulaimat/wamda/releases/latest)** —
+grab the `.exe` from the latest release and run it.
+
+> Wamda isn't code-signed yet, so Windows SmartScreen warns on first run.
+> Click **More info → Run anyway** (one time per version).
+
 ## Features
 
 - Global hotkey (default `Ctrl+Alt+.`, configurable live) toggles the capture bar.
