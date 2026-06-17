@@ -56,7 +56,7 @@ export function useSettings() {
   /**
    * Merge a patch into one provider's nested config. `update`'s shallow merge
    * would clobber the sibling provider, so nested edits must spread the whole
-   * `providers` object — this helper does that safely.
+   * `providers` object - this helper does that safely.
    */
   const updateProvider = useCallback(
     <K extends ProviderId>(id: K, patch: Partial<Providers[K]>) => {

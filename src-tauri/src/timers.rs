@@ -40,7 +40,7 @@ pub fn parse_duration(spec: &str) -> Result<u64, String> {
             's' => n,
             'm' => n.saturating_mul(60),
             'h' => n.saturating_mul(3600),
-            _ => return Err(format!("Unknown unit '{c}' — use s, m, or h")),
+            _ => return Err(format!("Unknown unit '{c}' - use s, m, or h")),
         };
         matched = true;
     }
@@ -82,7 +82,7 @@ pub fn start<R: Runtime>(
     let label = label.map(|l| l.trim().to_string()).filter(|l| !l.is_empty());
     let title = label.clone().unwrap_or_else(|| "Timer".into());
     let confirm = match &label {
-        Some(l) => format!("Timer started for {} — {l}", human(secs)),
+        Some(l) => format!("Timer started for {} - {l}", human(secs)),
         None => format!("Timer started for {}", human(secs)),
     };
 

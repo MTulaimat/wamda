@@ -233,7 +233,7 @@ function TrelloCard({ settings, update, updateProvider }: Props) {
           }
         })
         .catch(() => {
-          /* stale creds — user can re-test */
+          /* stale creds - user can re-test */
         });
     }
   }, [cfg.key, cfg.token, cfg.boardId]);
@@ -455,7 +455,7 @@ function LinearCard({ settings, update, updateProvider }: Props) {
       linearGetTeams(cfg.apiKey)
         .then(setTeams)
         .catch(() => {
-          /* stale key — user can re-test */
+          /* stale key - user can re-test */
         });
       void linearGetUsers(cfg.apiKey).then(setUsers).catch(() => {});
     }

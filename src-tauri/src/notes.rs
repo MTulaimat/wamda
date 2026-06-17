@@ -1,4 +1,4 @@
-//! Local notes — quick text captures that aren't tasks, never sent to a provider.
+//! Local notes - quick text captures that aren't tasks, never sent to a provider.
 //!
 //! Simpler than reminders: no scheduler, just CRUD over the shared store (the
 //! store is the source of truth). Kept newest-first so the list view shows the

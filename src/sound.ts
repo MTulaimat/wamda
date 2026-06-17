@@ -6,7 +6,7 @@ export function playChime() {
     ctx = ctx ?? new AudioContext();
     if (ctx.state === "suspended") void ctx.resume();
     const now = ctx.currentTime;
-    // Two quick ascending notes — a gentle, non-intrusive "ping".
+    // Two quick ascending notes - a gentle, non-intrusive "ping".
     [
       { f: 660, t: 0 },
       { f: 880, t: 0.08 },
@@ -23,6 +23,6 @@ export function playChime() {
       osc.stop(now + t + 0.24);
     });
   } catch {
-    /* audio unavailable — silently ignore */
+    /* audio unavailable - silently ignore */
   }
 }

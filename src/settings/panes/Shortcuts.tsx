@@ -24,18 +24,18 @@ const CAPTURE_SHORTCUTS: { label: string; combos: string[][] }[] = [
 ];
 
 // Slash commands, shown for reference. Keep in sync with the registry in
-// src/capture/commands.ts — this list is hand-maintained, not generated.
+// src/capture/commands.ts - this list is hand-maintained, not generated.
 const SLASH_COMMANDS: { cmd: string; desc: string }[] = [
   { cmd: "/trello", desc: "Send this capture to Trello (or make it the default)" },
   { cmd: "/linear", desc: "Send this capture to Linear (or make it the default)" },
   { cmd: "/template", desc: "Start a Trello card from a saved template" },
-  { cmd: "/note", desc: "Save a quick note — local, not a task" },
+  { cmd: "/note", desc: "Save a quick note - local, not a task" },
   { cmd: "/notes", desc: "List your notes, with a delete button on each" },
-  { cmd: "/remind", desc: "Set a reminder — “in 10m to ping Sam”" },
+  { cmd: "/remind", desc: "Set a reminder - “in 10m to ping Sam”" },
   { cmd: "/reminders", desc: "List your reminders, with a delete button on each" },
-  { cmd: "/timer", desc: "Start a countdown — “25m focus”" },
+  { cmd: "/timer", desc: "Start a countdown - “25m focus”" },
   { cmd: "/sup", desc: "Glance at what’s due soon" },
-  { cmd: "/undo", desc: "Reverse your last action — task, note, or reminder" },
+  { cmd: "/undo", desc: "Reverse your last action - task, note, or reminder" },
 ];
 
 function Combo({ keys }: { keys: string[] }) {
@@ -131,7 +131,7 @@ export function Shortcuts({
         While the bar is open
       </div>
       <p style={{ margin: "0 0 12px", fontSize: 12, color: T.faint, lineHeight: 1.5 }}>
-        On Mac, ⌘ stands in for Ctrl. The bar now stays open after each add — press
+        On Mac, ⌘ stands in for Ctrl. The bar now stays open after each add - press
         Esc or click away to dismiss it.
       </p>
       <div style={{ display: "flex", flexDirection: "column" }}>
@@ -165,7 +165,7 @@ export function Shortcuts({
         ))}
       </div>
       <p style={{ margin: "14px 0 0", fontSize: 11.5, color: T.faint, lineHeight: 1.5 }}>
-        Rebinding individual shortcuts isn’t supported yet — only the capture hotkey
+        Rebinding individual shortcuts isn’t supported yet - only the capture hotkey
         above is configurable.
       </p>
 

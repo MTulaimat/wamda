@@ -91,7 +91,7 @@ const DEFAULT_PROVIDERS: ProviderStatus[] = [
 ];
 
 // Entrance is driven by animation controls (not a remount) so replaying it on
-// each open never unmounts the bar — which is what caused the open flicker.
+// each open never unmounts the bar - which is what caused the open flicker.
 const ENTRANCE_FROM = { opacity: 0, y: 12, scale: 0.965, filter: "blur(6px)" };
 const ENTRANCE_TO = {
   opacity: 1,
@@ -207,7 +207,7 @@ export function Capture() {
   const descRef = useRef<HTMLTextAreaElement>(null);
   const openDatePickerRef = useRef<(() => void) | null>(null);
   // The last action `/undo` can reverse. A ref (not state) so it survives the
-  // capture window hiding/reopening — which runs resetAll() and clears form state.
+  // capture window hiding/reopening - which runs resetAll() and clears form state.
   const lastUndoableRef = useRef<UndoAction | null>(null);
   // Which provider's templates are currently cached (null = not loaded).
   const templatesProvider = useRef<string | null>(null);
@@ -342,7 +342,7 @@ export function Capture() {
           // Seed the effective template from the active provider's default. Must
           // happen here (not only via the defTpl effect): on a reopen the saved
           // id is unchanged, so that effect won't re-fire after resetAll cleared
-          // the chip — which would silently drop the default on every capture.
+          // the chip - which would silently drop the default on every capture.
           const cfg = s.providers[s.defaultProvider];
           setTemplate(
             cfg.templateId
@@ -568,7 +568,7 @@ export function Capture() {
               triggerShake();
               return;
             }
-            lastUndoableRef.current = null; // consumed — can't undo the same task twice
+            lastUndoableRef.current = null; // consumed - can't undo the same task twice
             setSending(false);
             // Bring the deleted task back into the bar so it can be edited & re-added.
             if (last.providerId !== dp) update({ defaultProvider: last.providerId });
@@ -576,7 +576,7 @@ export function Capture() {
             setDue(last.due);
             setExpanded(!!(last.description || last.due));
             setText(last.title);
-            setToast(`Removed from ${PROVIDER_LABELS[last.providerId]} — edit & re-add`);
+            setToast(`Removed from ${PROVIDER_LABELS[last.providerId]} - edit & re-add`);
             setTimeout(() => setToast(null), 1700);
             setTimeout(() => inputRef.current?.focus(), 0);
             return;
@@ -598,7 +598,7 @@ export function Capture() {
             setSending(false);
             setText(last.text);
             setToast(
-              `${last.kind === "removeNote" ? "Note" : "Reminder"} removed — edit & re-add`,
+              `${last.kind === "removeNote" ? "Note" : "Reminder"} removed - edit & re-add`,
             );
             setTimeout(() => setToast(null), 1700);
             setTimeout(() => inputRef.current?.focus(), 0);
@@ -741,7 +741,7 @@ export function Capture() {
       removeTemplate();
       return;
     }
-    // Template picker (`/template `) — arrow to move, Enter/Tab to select.
+    // Template picker (`/template `) - arrow to move, Enter/Tab to select.
     if (showTemplateDropdown) {
       const list = templateMatches;
       if (e.key === "ArrowDown") {
@@ -1033,7 +1033,7 @@ export function Capture() {
                     {activeSpec.hint}
                   </>
                 ) : (
-                  "Type a command — / for the list"
+                  "Type a command - / for the list"
                 )}
               </span>
             ) : (
@@ -1311,7 +1311,7 @@ export function Capture() {
                   {templatesErr
                     ? templatesErr
                     : templates.length === 0
-                      ? `No templates on this ${dp === "linear" ? "team" : "board"} — create one in ${PROVIDER_LABELS[dp]}.`
+                      ? `No templates on this ${dp === "linear" ? "team" : "board"} - create one in ${PROVIDER_LABELS[dp]}.`
                       : `No template matches “${parsed.rest.trim()}”.`}
                 </div>
               ) : (
@@ -1397,7 +1397,7 @@ export function Capture() {
               </div>
               {supResults.items.length === 0 ? (
                 <div style={{ padding: "16px", fontSize: 13, color: T.sub }}>
-                  Nothing due — you’re all clear.
+                  Nothing due - you’re all clear.
                 </div>
               ) : (
                 supResults.items.map((it, i) => (
@@ -1445,7 +1445,7 @@ export function Capture() {
           )}
         </AnimatePresence>
 
-        {/* /notes · /reminders — deletable local lists */}
+        {/* /notes · /reminders - deletable local lists */}
         <AnimatePresence>
           {localList && (
             <motion.div
@@ -1481,8 +1481,8 @@ export function Capture() {
               {localList.items.length === 0 ? (
                 <div style={{ padding: "16px", fontSize: 13, color: T.sub }}>
                   {localList.kind === "notes"
-                    ? "No notes yet — save one with /note."
-                    : "No reminders set — add one with /remind."}
+                    ? "No notes yet - save one with /note."
+                    : "No reminders set - add one with /remind."}
                 </div>
               ) : localList.kind === "notes" ? (
                 localList.items.map((n, i) => (

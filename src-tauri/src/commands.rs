@@ -2,7 +2,7 @@ use tauri::{AppHandle, Runtime};
 
 use crate::provider::{self, ProviderKind, ProviderStatus, TaskInput, TaskRef, TaskSummary};
 use crate::settings::Settings;
-use crate::{linear, notes, reminders, settings, shortcut, timers, trello, windows};
+use crate::{linear, notes, reminders, settings, shortcut, timers, trello, update, windows};
 
 #[tauri::command]
 pub fn get_settings<R: Runtime>(app: AppHandle<R>) -> Settings {
@@ -224,7 +224,7 @@ pub fn reminder_list<R: Runtime>(app: AppHandle<R>) -> Vec<reminders::Reminder> 
     reminders::list(&app)
 }
 
-/// Re-add a reminder by its absolute time — powers `/undo` after a delete.
+/// Re-add a reminder by its absolute time - powers `/undo` after a delete.
 /// (`reminder_schedule` only takes a natural-language phrase, not a timestamp.)
 #[tauri::command]
 pub fn reminder_restore<R: Runtime>(
@@ -261,4 +261,15 @@ pub fn timer_start<R: Runtime>(
     label: Option<String>,
 ) -> Result<String, String> {
     timers::start(&app, spec, label)
+}
+
+// ---- Update check ----
+
+/// Compare the running version against the latest GitHub release. Notify-only:
+/// returns whether a newer version exists + the release page URL. The About pane
+/// calls this on open; failures surface as Err and are quietly ignored by the UI.
+#[tauri::command]
+pub async fn check_for_update<R: Runtime>(app: AppHandle<R>) -> Result<update::UpdateInfo, String> {
+    let current = app.package_info().version.to_string();
+    update::check(&current).await
 }

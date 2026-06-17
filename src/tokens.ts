@@ -65,7 +65,7 @@ input.bare::placeholder,textarea.bare::placeholder{color:${T.faint}}
 .linkish:hover{color:var(--accent)!important}
 .shake{animation:shake .32s ease}
 
-/* Scrollbars — slim, dark, theme-matched (Chromium/WebView2). The 3px
+/* Scrollbars - slim, dark, theme-matched (Chromium/WebView2). The 3px
    transparent border + padding-box clip floats a thin thumb inside the track.
    Use background-color (not the background shorthand) so hover/active don't
    reset the clip and fatten the thumb. */

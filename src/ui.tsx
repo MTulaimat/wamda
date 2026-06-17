@@ -1,6 +1,6 @@
 import { T } from "./tokens";
 
-/* Keycap — ported verbatim from the prototype. */
+/* Keycap - ported verbatim from the prototype. */
 export function Key({
   children,
   accent,

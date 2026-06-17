@@ -47,17 +47,17 @@ export function buildRegistry(providers: ProviderStatus[]): CommandSpec[] {
     { id: "timer", token: "timer", title: "Start a timer", hint: "25m focus" },
     { id: "sup", token: "sup", title: "What's due", hint: "your upcoming tasks" },
     { id: "template", token: "template", title: "From a template", hint: "start from a saved template · Trello only" },
-    { id: "note", token: "note", title: "Save a note", hint: "jot something — stays local, not a task" },
+    { id: "note", token: "note", title: "Save a note", hint: "jot something - stays local, not a task" },
     { id: "notes", token: "notes", title: "Your notes", hint: "list & delete saved notes" },
     { id: "reminders", token: "reminders", title: "Your reminders", hint: "list & delete reminders" },
-    { id: "undo", token: "undo", title: "Undo last", hint: "reverse your last action — task, note, or reminder" },
+    { id: "undo", token: "undo", title: "Undo last", hint: "reverse your last action - task, note, or reminder" },
   ];
   const routes = providers.map<CommandSpec>((p) => ({
     id: "provider",
     token: p.id,
     providerId: p.id,
     title: `Send to ${p.label}`,
-    hint: p.configured ? "set as default, or one-off send" : `${p.label} — not connected`,
+    hint: p.configured ? "set as default, or one-off send" : `${p.label} - not connected`,
   }));
   return [...base, ...routes];
 }

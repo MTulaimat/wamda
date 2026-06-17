@@ -20,7 +20,7 @@ pub fn parse(accel: &str) -> Result<Shortcut, String> {
 pub fn plugin<R: Runtime>() -> tauri::plugin::TauriPlugin<R> {
     tauri_plugin_global_shortcut::Builder::new()
         .with_handler(|app, shortcut, event| {
-            // Handler fires on both Pressed and Released — act on Pressed only.
+            // Handler fires on both Pressed and Released - act on Pressed only.
             if event.state() != ShortcutState::Pressed {
                 return;
             }

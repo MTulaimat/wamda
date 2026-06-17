@@ -9,9 +9,9 @@ type Props = {
   onKeyDown?: (e: React.KeyboardEvent<HTMLInputElement>) => void;
   placeholder?: string;
   disabled?: boolean;
-  /** Slot between the glyph and the input — used for the selected-template chip. */
+  /** Slot between the glyph and the input - used for the selected-template chip. */
   leading?: React.ReactNode;
-  /** Slot to the right of the input — reserved seam for a future dictate button. */
+  /** Slot to the right of the input - reserved seam for a future dictate button. */
   trailing?: React.ReactNode;
 
   /** Expandable details (task capture only; hidden for /commands). */
@@ -164,7 +164,7 @@ export const CaptureInput = forwardRef<HTMLInputElement, Props>(
               style={{ overflow: "hidden" }}
             >
               <div style={{ position: "relative", padding: "0 18px 16px 56px" }}>
-                {/* Due date — icon only, aligned under the expand button. */}
+                {/* Due date - icon only, aligned under the expand button. */}
                 <div style={{ position: "absolute", top: 2, right: 18 }}>
                   <button
                     className="icon-btn"

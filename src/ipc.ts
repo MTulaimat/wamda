@@ -1,4 +1,4 @@
-/* Typed wrappers over Tauri's invoke() — the single surface the UI uses to talk to Rust. */
+/* Typed wrappers over Tauri's invoke() - the single surface the UI uses to talk to Rust. */
 import { invoke } from "@tauri-apps/api/core";
 import type {
   Board,
@@ -13,6 +13,7 @@ import type {
   TaskSummary,
   Team,
   Template,
+  UpdateInfo,
   Person,
 } from "./types";
 
@@ -102,3 +103,6 @@ export const setAutostart = (enabled: boolean) =>
 export const showCapture = () => invoke<void>("show_capture");
 export const hideCapture = () => invoke<void>("hide_capture");
 export const openSettings = () => invoke<void>("open_settings");
+
+/** Check GitHub for a newer release. Notify-only; rejects (ignored by UI) when offline. */
+export const checkForUpdate = () => invoke<UpdateInfo>("check_for_update");

@@ -451,7 +451,7 @@ export default function App() {
       {/* faux taskbar + tray */}
       <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, height: 44, background: 'rgba(8,9,15,0.6)', backdropFilter: 'blur(16px)', WebkitBackdropFilter: 'blur(16px)', borderTop: `1px solid ${T.hairline}`, display: 'flex', alignItems: 'center', justifyContent: 'flex-end', paddingRight: 16, gap: 14 }}>
         <Tray open={tray} setOpen={setTray} setView={(v) => { setView(v); }} />
-        <button className="icon-btn btn" onClick={() => setTray(t => !t)} title="Quickdrop — click for menu" style={{ display: 'grid', placeItems: 'center', width: 30, height: 30, borderRadius: 8, background: tray ? 'rgba(255,255,255,0.1)' : 'transparent', border: 'none', cursor: 'pointer' }}>
+        <button className="icon-btn btn" onClick={() => setTray(t => !t)} title="Quickdrop - click for menu" style={{ display: 'grid', placeItems: 'center', width: 30, height: 30, borderRadius: 8, background: tray ? 'rgba(255,255,255,0.1)' : 'transparent', border: 'none', cursor: 'pointer' }}>
           <span style={{ display: 'grid', placeItems: 'center', width: 22, height: 22, borderRadius: 6, background: `linear-gradient(135deg,${T.accent},${T.accent2})` }}>
             <Zap size={13} color="#fff" />
           </span>

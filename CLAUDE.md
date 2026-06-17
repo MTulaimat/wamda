@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## What this is
 
-**Wamda** — a background quick-capture desktop app for Windows. A global hotkey
+**Wamda** - a background quick-capture desktop app for Windows. A global hotkey
 (`Ctrl+Alt+.`, configurable) toggles a centered "capture bar"; type a task, hit
 Enter, and it becomes a card on a configured Trello list. Lives in the system
 tray with no window on launch.
@@ -34,11 +34,11 @@ This is a Vite multi-page app. Each Tauri window maps to its own HTML entry:
 Both windows are declared in [src-tauri/tauri.conf.json](src-tauri/tauri.conf.json)
 (transparent, decorationless, `visible: false`) and built via the `rollupOptions.input`
 map in [vite.config.ts](vite.config.ts). Window labels are referenced by string
-throughout the Rust backend — changing a label means changing it in tauri.conf.json,
+throughout the Rust backend - changing a label means changing it in tauri.conf.json,
 the capability file, and `windows.rs`.
 
 ### The IPC boundary
-The UI talks to Rust **only** through [src/ipc.ts](src/ipc.ts) — typed `invoke()`
+The UI talks to Rust **only** through [src/ipc.ts](src/ipc.ts) - typed `invoke()`
 wrappers, one per `#[tauri::command]`. The command surface is defined in
 [src-tauri/src/commands.rs](src-tauri/src/commands.rs) and registered in the
 `invoke_handler!` macro in [src-tauri/src/lib.rs](src-tauri/src/lib.rs). To add a
@@ -50,14 +50,14 @@ the `serde` structs (camelCase via `#[serde(rename_all = "camelCase")]`).
 [src-tauri/src/trello.rs](src-tauri/src/trello.rs) makes all Trello API calls with
 `reqwest`. This is deliberate security design: the API token never touches the
 webview's network surface. **Errors are mapped to readable, token-free strings**
-(`net_err` / `status_err`) — never surface the raw request URL, which carries the
+(`net_err` / `status_err`) - never surface the raw request URL, which carries the
 secret token in its query string. Preserve this invariant when editing.
 
 ### Settings flow
 Persisted via `tauri-plugin-store` to `settings.json` ([settings.rs](src-tauri/src/settings.rs),
 single `Settings` struct, the source of truth). On the frontend,
 [src/useSettings.ts](src/useSettings.ts) loads on mount and saves debounced (250ms).
-Each window mounts its own copy — they converge through the persisted store on next
+Each window mounts its own copy - they converge through the persisted store on next
 open (the capture window re-fetches settings on every `capture:opened` event). Accent
 color is applied live via CSS variables ([src/accent.ts](src/accent.ts)).
 
@@ -65,7 +65,7 @@ color is applied live via CSS variables ([src/accent.ts](src/accent.ts)).
 [src-tauri/src/shortcut.rs](src-tauri/src/shortcut.rs). The plugin handler reads the
 *current* shortcut + paused flag from managed `AppState` (a `Mutex<Shortcut>`) at fire
 time, so re-registering or pausing works without rebuilding the plugin. A shortcut
-conflict at startup must NOT block launch — it degrades gracefully so the user can pick
+conflict at startup must NOT block launch - it degrades gracefully so the user can pick
 another combo from the tray/settings. `register_current` clears stale registrations
 first so a crashed prior instance can't cause "already registered".
 
@@ -73,9 +73,9 @@ first so a crashed prior instance can't cause "already registered".
 - Capture bar **shows centered on the monitor under the cursor**, focuses, and emits
   `capture:opened` (with optional clipboard prefill).
 - On **focus loss** (`WindowEvent::Focused(false)`) the capture window emits
-  `capture:reset` and hides — spotlight behavior. The reset returns the bar to its
+  `capture:reset` and hides - spotlight behavior. The reset returns the bar to its
   entrance start frame so the next open animates cleanly (see the entrance-via-
-  animation-controls note in [src/capture/Capture.tsx](src/capture/Capture.tsx) —
+  animation-controls note in [src/capture/Capture.tsx](src/capture/Capture.tsx) -
   it deliberately does NOT remount, to avoid flicker).
 - The **settings** window's close button hides instead of quitting (`prevent_close`).
 - `tauri-plugin-single-instance` is registered **first** in the builder; a second
@@ -90,7 +90,7 @@ New Tauri APIs must be allowlisted in
 ## Conventions
 
 - Design tokens and global CSS live in [src/tokens.ts](src/tokens.ts) (ported from
-  `design/QuickCapture.jsx`, the original design mockup — reference only, not built).
+  `design/QuickCapture.jsx`, the original design mockup - reference only, not built).
 - Styling is mostly inline styles + the accent CSS variable; animations use `motion`
   (Framer Motion). Icons are `lucide-react`.
 - The capture input ([src/capture/CaptureInput.tsx](src/capture/CaptureInput.tsx)) is
@@ -102,11 +102,11 @@ New Tauri APIs must be allowlisted in
   [src/capture/Capture.tsx](src/capture/Capture.tsx). Whenever you add, remove, or
   change a slash command **or a keyboard shortcut**, ALWAYS update the hand-maintained
   reference lists in the Shortcuts settings pane
-  ([src/settings/panes/Shortcuts.tsx](src/settings/panes/Shortcuts.tsx)) — they are not
+  ([src/settings/panes/Shortcuts.tsx](src/settings/panes/Shortcuts.tsx)) - they are not
   generated and drift silently otherwise.
 - **App version**: the About pane ([src/settings/panes/About.tsx](src/settings/panes/About.tsx))
   reads it at runtime via `getVersion()` from
-  [src-tauri/tauri.conf.json](src-tauri/tauri.conf.json) — never hardcode it. On a
+  [src-tauri/tauri.conf.json](src-tauri/tauri.conf.json) - never hardcode it. On a
   release bump, update the version in `tauri.conf.json` **and**
   [src-tauri/Cargo.toml](src-tauri/Cargo.toml) (keep the two in sync); the About pane
   then shows it automatically.

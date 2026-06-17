@@ -56,7 +56,7 @@ pub struct Template {
 }
 
 /// Someone a task can be assigned to (Trello board member / Linear user). The
-/// `detail` line is secondary picker text — @username (Trello) or email (Linear).
+/// `detail` line is secondary picker text - @username (Trello) or email (Linear).
 #[derive(Serialize, Debug, Clone)]
 pub struct Person {
     pub id: String,
@@ -65,7 +65,7 @@ pub struct Person {
 }
 
 /// Shared contract. Both providers implement it; the enum below forwards to them.
-/// Never used as `dyn` (async fns aren't object-safe) — hence the allow.
+/// Never used as `dyn` (async fns aren't object-safe) - hence the allow.
 #[allow(async_fn_in_trait)]
 pub trait Provider {
     fn id(&self) -> &str;
@@ -140,6 +140,6 @@ impl ProviderKind {
     }
 }
 
-/// Every provider the app knows about — drives `list_providers()` and the
+/// Every provider the app knows about - drives `list_providers()` and the
 /// frontend's `/trello` · `/linear` route commands.
 pub const PROVIDER_IDS: [&str; 2] = ["trello", "linear"];

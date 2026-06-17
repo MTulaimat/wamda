@@ -7,6 +7,7 @@ mod settings;
 mod shortcut;
 mod timers;
 mod trello;
+mod update;
 mod windows;
 
 use std::sync::Mutex;
@@ -58,7 +59,7 @@ pub fn run() {
             app.manage(reminders::Scheduler::new());
             reminders::bootstrap(handle);
 
-            // A hotkey conflict must NOT prevent startup — the user needs the
+            // A hotkey conflict must NOT prevent startup - the user needs the
             // tray + settings to pick a different combo. Degrade gracefully.
             if let Err(e) = shortcut::register_current(handle) {
                 eprintln!("Wamda: could not register global shortcut at startup: {e}");
@@ -113,6 +114,7 @@ pub fn run() {
             commands::note_list,
             commands::note_remove,
             commands::timer_start,
+            commands::check_for_update,
         ])
         .run(tauri::generate_context!())
         .expect("error while running Wamda");

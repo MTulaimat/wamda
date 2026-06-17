@@ -39,7 +39,7 @@ fn client() -> reqwest::Client {
 /// URL (which carries the secret token) in the surfaced string.
 fn net_err(e: reqwest::Error) -> String {
     if e.is_timeout() {
-        "Network timeout — check your connection".into()
+        "Network timeout - check your connection".into()
     } else if e.is_connect() {
         "Could not reach Trello".into()
     } else {
@@ -51,9 +51,9 @@ fn net_err(e: reqwest::Error) -> String {
 fn status_err(status: reqwest::StatusCode) -> String {
     match status.as_u16() {
         401 => "Check your key/token".into(),
-        403 => "Not authorized — re-check your token's permissions".into(),
+        403 => "Not authorized - re-check your token's permissions".into(),
         404 => "Board or list not found".into(),
-        429 => "Trello rate limit hit — try again shortly".into(),
+        429 => "Trello rate limit hit - try again shortly".into(),
         _ => format!("Trello error ({status})"),
     }
 }
@@ -84,12 +84,12 @@ pub async fn get_lists(key: &str, token: &str, board_id: &str) -> Result<Vec<Lis
     resp.json::<Vec<List>>().await.map_err(|_| "Unexpected response from Trello".into())
 }
 
-/// Card templates on a board are ordinary cards flagged `isTemplate` — there's no
+/// Card templates on a board are ordinary cards flagged `isTemplate` - there's no
 /// dedicated endpoint, so we list the board's cards (minimal fields) and keep the
 /// ones flagged as templates, **including archived ones**. Trello's own "create
 /// from template" picker shows archived template cards and builds from them (via
 /// `idCardSource`), and people routinely archive template cards to keep a board
-/// uncluttered — so excluding archived ones would drop legitimate templates.
+/// uncluttered - so excluding archived ones would drop legitimate templates.
 /// (`filter=all` is what pulls archived cards into the response.)
 pub async fn get_templates(
     key: &str,
@@ -288,7 +288,7 @@ impl Provider for TrelloProvider {
     }
 
     async fn delete_task(&self, id: &str) -> Result<(), String> {
-        // DELETE /1/cards/{id} — `.query` keeps the token-bearing URL unsurfaced.
+        // DELETE /1/cards/{id} - `.query` keeps the token-bearing URL unsurfaced.
         let resp = client()
             .delete(format!("{BASE}/cards/{id}"))
             .query(&[("key", self.key.as_str()), ("token", self.token.as_str())])

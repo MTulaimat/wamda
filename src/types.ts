@@ -73,6 +73,13 @@ export type Note = {
   createdAt: string;
 };
 
+export type UpdateInfo = {
+  available: boolean;
+  currentVersion: string;
+  latestVersion: string;
+  url: string;
+};
+
 export const DEFAULT_SETTINGS: Settings = {
   shortcut: "Ctrl+Alt+.",
   launchAtStartup: false,

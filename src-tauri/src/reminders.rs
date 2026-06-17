@@ -1,4 +1,4 @@
-//! Local reminders — never sent to any provider.
+//! Local reminders - never sent to any provider.
 //!
 //! In-process scheduler: a single background task sleeps until the soonest
 //! reminder and wakes early (via `Notify`) whenever one is added/removed. The
@@ -91,7 +91,7 @@ pub fn resolve_phrase(phrase: &str) -> Result<String, String> {
         return Ok((base + dur).to_rfc3339());
     }
 
-    // 2. Calendar / absolute phrases — try as-is, then a connector-stripped form.
+    // 2. Calendar / absolute phrases - try as-is, then a connector-stripped form.
     for candidate in [phrase.to_string(), normalize_for_interim(phrase)] {
         if let Ok(dt) = parse_date_string(&candidate, base, Dialect::Us) {
             if dt <= base {
@@ -246,7 +246,7 @@ async fn run_loop<R: Runtime>(app: AppHandle<R>, wake: Arc<Notify>) {
             .min_by_key(|(t, _)| *t);
 
         match next {
-            None => wake.notified().await, // nothing scheduled — park until woken
+            None => wake.notified().await, // nothing scheduled - park until woken
             Some((fire_at, _)) => {
                 let dur = (fire_at - Utc::now())
                     .to_std()

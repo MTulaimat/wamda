@@ -113,7 +113,7 @@ export function Settings() {
                   />
                   {PROVIDER_LABELS[id]}
                   <span style={{ marginLeft: "auto", fontSize: 10.5, color: T.faint }}>
-                    {c ? "connected" : "—"}
+                    {c ? "connected" : "-"}
                   </span>
                 </div>
               );

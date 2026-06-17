@@ -32,7 +32,7 @@ impl LinearProvider {
 
 fn net_err(e: reqwest::Error) -> String {
     if e.is_timeout() {
-        "Network timeout — check your connection".into()
+        "Network timeout - check your connection".into()
     } else if e.is_connect() {
         "Could not reach Linear".into()
     } else {
@@ -189,7 +189,7 @@ impl Provider for LinearProvider {
     }
 
     async fn delete_task(&self, id: &str) -> Result<(), String> {
-        // issueDelete soft-deletes (moves to trash) — recoverable, which suits an
+        // issueDelete soft-deletes (moves to trash) - recoverable, which suits an
         // undo affordance well.
         #[derive(Deserialize)]
         struct Data {
@@ -256,7 +256,7 @@ impl Provider for LinearProvider {
 
     async fn list_templates(&self) -> Result<Vec<Template>, String> {
         // Linear has issue templates, but `issueCreate` exposes no server-side
-        // `templateId` — applying one means reading the template's `templateData`
+        // `templateId` - applying one means reading the template's `templateData`
         // JSON and mapping its fields here. Until that's built (and verified
         // against a real key), expose none so the /template UI degrades
         // gracefully: Linear shows an empty template list rather than erroring.
