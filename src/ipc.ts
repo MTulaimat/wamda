@@ -104,5 +104,8 @@ export const showCapture = () => invoke<void>("show_capture");
 export const hideCapture = () => invoke<void>("hide_capture");
 export const openSettings = () => invoke<void>("open_settings");
 
+/** Current clipboard text (trimmed), or null when empty/unavailable. */
+export const readClipboard = () => invoke<string | null>("read_clipboard");
+
 /** Check GitHub for a newer release. Notify-only; rejects (ignored by UI) when offline. */
 export const checkForUpdate = () => invoke<UpdateInfo>("check_for_update");

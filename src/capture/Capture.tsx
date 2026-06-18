@@ -90,6 +90,33 @@ const DEFAULT_PROVIDERS: ProviderStatus[] = [
   { id: "linear", label: "Linear", configured: false },
 ];
 
+// Rotating placeholder copy - a fresh one is picked each time the bar opens, so
+// the empty input feels a little alive. Kept short enough not to wrap at 780px.
+const PLACEHOLDERS = [
+  "What needs doing?",
+  "Quick, before you forget…",
+  "Brain dump it here.",
+  "Catch that thought before it escapes.",
+  "Type it. Forget it. You're welcome.",
+  "What's gnawing at you?",
+  "Offload one thing.",
+  "Future you says thanks.",
+  "Make it real - type it down.",
+  "One task, hot off the brain.",
+  "Don't let it rattle around up there.",
+  "Got a flicker of an idea?",
+  "Capture the spark.",
+  "Spill the to-do.",
+  "What's next on the list?",
+  "Tell me your troubles (the actionable ones).",
+  "Jot it before it ghosts you.",
+  "Add it now, deal with it later.",
+  "Say the word and it's a card.",
+  "Out of your head, into the void.",
+];
+const pickPlaceholder = () =>
+  PLACEHOLDERS[Math.floor(Math.random() * PLACEHOLDERS.length)];
+
 // Entrance is driven by animation controls (not a remount) so replaying it on
 // each open never unmounts the bar - which is what caused the open flicker.
 const ENTRANCE_FROM = { opacity: 0, y: 12, scale: 0.965, filter: "blur(6px)" };
@@ -189,6 +216,7 @@ export function Capture() {
   const [toast, setToast] = useState<string | null>(null);
   const [shake, setShake] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [placeholder, setPlaceholder] = useState(pickPlaceholder);
   const [expanded, setExpanded] = useState(false);
   const [description, setDescription] = useState("");
   const [due, setDue] = useState<string | null>(null);
@@ -333,6 +361,7 @@ export function Capture() {
     };
     const unlistenOpened = listen<OpenedPayload>("capture:opened", (e) => {
       resetAll();
+      setPlaceholder(pickPlaceholder()); // fresh quip each open
       if (e.payload?.prefill) setText(e.payload.prefill);
       // Pull fresh settings + provider statuses so the chip/commands are current.
       void getSettings()
@@ -925,11 +954,7 @@ export function Capture() {
             onChange={onChangeText}
             onKeyDown={onTitleKeyDown}
             placeholder={
-              isCommand
-                ? "Type a command…"
-                : template
-                  ? `Name this ${dp === "linear" ? "issue" : "card"}…`
-                  : "What needs doing?"
+              isCommand ? "Type a command…" : placeholder
             }
             leading={!isCommand ? templateChip : undefined}
             showExpandToggle={!isCommand}

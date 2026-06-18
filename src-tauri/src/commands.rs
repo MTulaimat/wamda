@@ -94,6 +94,20 @@ pub fn open_settings<R: Runtime>(app: AppHandle<R>) {
     windows::open_settings(&app);
 }
 
+/// Current clipboard text, trimmed. `None` when empty or unavailable. The settings
+/// UI calls this after the Trello authorize flow to offer one-tap token paste -
+/// the token never has to be hand-typed.
+#[tauri::command]
+pub fn read_clipboard() -> Option<String> {
+    let text = arboard::Clipboard::new().ok()?.get_text().ok()?;
+    let trimmed = text.trim();
+    if trimmed.is_empty() {
+        None
+    } else {
+        Some(trimmed.to_string())
+    }
+}
+
 fn sync_autostart<R: Runtime>(app: &AppHandle<R>, enabled: bool) {
     use tauri_plugin_autostart::ManagerExt;
     let mgr = app.autolaunch();

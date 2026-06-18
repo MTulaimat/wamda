@@ -98,6 +98,7 @@ pub fn run() {
             commands::show_capture,
             commands::hide_capture,
             commands::open_settings,
+            commands::read_clipboard,
             commands::provider_create_task,
             commands::provider_delete_task,
             commands::provider_list_due,
